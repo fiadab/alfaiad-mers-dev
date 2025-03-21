@@ -14,7 +14,7 @@
 
     "start": "next start",
 
-    "lint": "next lint"
+    "lint": "next lint",
     "postinstall": "prisma generate"
 
   },
