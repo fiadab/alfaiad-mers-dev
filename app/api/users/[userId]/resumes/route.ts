@@ -3,67 +3,61 @@ import { auth } from "@clerk/nextjs/server";
 import { Resumes } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-export const POST = async (
-  req: Request,
-  ) => {
+export const POST = async (req: Request) => {
   try {
-        const {userId} = await auth();
+    const { userId } = await auth();
 
-        if(!userId) {
-          return new NextResponse("Un-Authorized", {status: 401});
-        }
-
-    const { resumes } = await req.json();
-
-    if (
-      !resumes ||
-      !Array.isArray(resumes) ||
-      resumes.length === 0
-    ) {
-      return new NextResponse("Invalid Resume Format", { status: 400 });
+    // التحقق من صلاحية المستخدم
+    if (!userId) {
+      return new NextResponse("Unauthorized: User not authenticated", { status: 401 });
     }
 
-    const createdResumes : Resumes [] = [];
+    // استخراج البيانات من الطلب
+    const { resumes } = await req.json();
 
+    if (!resumes || !Array.isArray(resumes) || resumes.length === 0) {
+      return new NextResponse("Bad Request: Invalid resume format", { status: 400 });
+    }
+
+    // التحقق من صحة الحقول لكل سيرة ذاتية
     for (const resume of resumes) {
-      const { url, name } = resume;
+      if (!resume.url || !resume.name) {
+        return new NextResponse("Bad Request: Each resume must have a 'url' and 'name'", { status: 400 });
+      }
+    }
 
+    // جلب السير الذاتية الموجودة مسبقًا
+    const existingResumes = await db.resumes.findMany({
+      where: {
+        userProfileId: userId,
+        url: { in: resumes.map((resume) => resume.url) },
+      },
+    });
 
-      const  existingResume = await db.resumes.findFirst({
-        where:{
+    const existingUrls = new Set(existingResumes.map((resume) => resume.url));
+
+    // إنشاء السير الذاتية الجديدة فقط
+    const createdResumes: Resumes[] = [];
+    for (const resume of resumes) {
+      if (existingUrls.has(resume.url)) {
+        console.log(`Resume with URL ${resume.url} already exists for userId ${userId}`);
+        continue;
+      }
+
+      const createdResume = await db.resumes.create({
+        data: {
+          url: resume.url,
+          name: resume.name,
           userProfileId: userId,
-          url,
         },
       });
 
-
-
-      if (existingResume) {
-        console.log(
-          `Resume with URL ${url} already exists for jobId ${userId}`
-        );
-        continue;
-
-      }
-
-
-      const createdResume = await db.resumes.create({
-                  data:{
-                    url,
-                    name,
-                    userProfileId: userId,
-                  },
-      });
-
-
-
-       createdResumes.push(createdResume);
+      createdResumes.push(createdResume);
     }
 
-
-    return NextResponse.json(createdResumes);
+    return NextResponse.json(createdResumes, { status: 201 });
   } catch (error) {
-    console.error(`[USER_RESUME_POST]: ${error}`);
+    console.error(`[USER_RESUME_POST_ERROR]:`, error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };

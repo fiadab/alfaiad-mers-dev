@@ -80,8 +80,12 @@ export const getJobs = async (
       };
     }
 
-    const processMultiValues = (value?: string) => 
-      value ? value.split(',').map(v => v.trim()) : undefined;
+    const processMultiValues = (value?: string) => {
+      if (typeof value !== "string") {
+        return undefined;
+      }
+      return value.split(',').map(v => v.trim());
+    };
 
     if (options.shiftTiming) {
       where.shiftTiming = {
@@ -132,3 +136,4 @@ export const getJobs = async (
     throw new Error(`Failed to retrieve jobs: ${(error as Error).message}`);
   }
 };
+

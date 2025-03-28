@@ -48,6 +48,8 @@ const handler = createEdgeStoreNextHandler({
 
 export { handler as GET, handler as POST };
 export type EdgeStoreRouter = typeof edgeStoreRouter;
+
+
 // import { initEdgeStore } from '@edgestore/server';
 // import { CreateContextOptions, createEdgeStoreNextHandler } from '@edgestore/server/adapters/next/app';
 // import { z } from 'zod';

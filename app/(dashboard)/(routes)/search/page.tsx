@@ -6,50 +6,51 @@ import { CategoriesList } from "./_components/categories-list";
 import PageContent from "./_components/page-content";
 import { AppliedFilters } from "./_components/applied-filters";
 
-interface SearchProps{
-    searchParams:{
-        title: string;
-        categoryId: string;
-        createdAtFilter: string;
-        shiftTiming: string;
-        workMode: string;
-        yearsOfExperience: string;
-    };
+interface SearchProps {
+  searchParams: {
+    title: string;
+    categoryId: string;
+    createdAtFilter: string;
+    shiftTiming: string;
+    workMode: string;
+    yearsOfExperience: string;
+  };
 }
 
-const SearchPage = async ({searchParams} : SearchProps) => {
-    // جلب الفئات
-    const categories = await db.category.findMany({
-        orderBy: {
-            name: "asc",
-        },
-    });
+const SearchPage = async ({ searchParams }: SearchProps) => {
+  // Fetch categories
+  const categories = await db.category.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  });
 
-    // جلب المستخدم
-    const { userId } = await auth();
+  // Fetch authenticated user
+  const { userId } = await auth();
 
-    // جلب الوظائف
-    const { jobs, total } = await getJobs({ ...searchParams });
-    console.log(`Jobs count : ${jobs.length}`);
+  // Fetch jobs based on search parameters
+  const { jobs, total } = await getJobs({ ...searchParams });
+  console.log(`Jobs count : ${jobs.length}`);
 
-    return (
-        <>
-            <div className="px-6 pt-6 block md:hidden md:mb-0">
-                <SearchContainer/>
-            </div>
+  return (
+    <>
+      <div className="px-6 pt-6 block md:hidden md:mb-0">
+        {/* Search bar for mobile view */}
+        <SearchContainer />
+      </div>
 
-            <div className="p-6">
-                {/* الفئات */}
-                <CategoriesList categories={categories} />
-                
-                {/* الفلاتر المطبقة */}
-                <AppliedFilters categories={categories} />
+      <div className="p-6">
+        {/* Categories list */}
+        <CategoriesList categories={categories} />
 
-                {/* محتوى الصفحة */}
-                <PageContent jobs={jobs} userId={userId} />
-            </div>
-        </>
-    );
+        {/* Applied filters */}
+        <AppliedFilters categories={categories} />
+
+        {/* Page content displaying jobs */}
+        <PageContent jobs={jobs} userId={userId} />
+      </div>
+    </>
+  );
 };
 
 export default SearchPage;

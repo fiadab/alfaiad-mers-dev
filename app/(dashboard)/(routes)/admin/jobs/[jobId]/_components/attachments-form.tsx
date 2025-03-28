@@ -158,3 +158,4 @@ export const AttachmentsForm = ({ initialData, jobId }: AttachmentsFormProps) =>
     </div>
   );
 };
+

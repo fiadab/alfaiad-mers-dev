@@ -12,7 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { File, Loader2, PlusCircle, ShieldCheck, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Resumes, UserProfile,  } from "@prisma/client";
+import { Resumes, UserProfile } from "@prisma/client";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -24,6 +24,7 @@ interface ResumeFormProps {
   userId: string;
 }
 
+// Schema for form validation
 const formSchema = z.object({
   resumes: z
     .object({
@@ -39,6 +40,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
   const [isActiveResumeId, setIsActiveResumeId] = useState<string | null>(null);
   const router = useRouter();
 
+  // Initialize resumes from initial data
   const initialResumes = Array.isArray(initialData?.resumes)
     ? initialData.resumes.map((resume) => ({
         url: resume.url,
@@ -51,16 +53,19 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
     defaultValues: { resumes: initialResumes },
   });
 
+  // Validate uploaded files
   const validateFiles = (files: any[]): boolean => {
     return files.every(
       (file) =>
-        file.size <= 5 * 1024 * 1024 && // حجم الملف <= 2 ميغابايت
-        ["application/pdf", "application/msword"].includes(file.type) // أنواع الملفات المدعومة
+        file.size <= 5 * 1024 * 1024 && // File size <= 5MB
+        ["application/pdf", "application/msword"].includes(file.type) // Supported file types
     );
   };
 
+  // Toggle editing mode
   const toggleEditing = () => setIsEditing((current) => !current);
 
+  // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.post(`/api/users/${userId}/resumes`, values);
@@ -72,6 +77,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
     }
   };
 
+  // Handle resume deletion
   const onDelete = async (resume: Resumes) => {
     try {
       if (initialData?.activeResumeId === resume.id) {
@@ -89,6 +95,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
     }
   };
 
+  // Handle setting active resume
   const setActiveResumeId = async (resumeId: string) => {
     try {
       setIsActiveResumeId(resumeId);
@@ -117,6 +124,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
         </Button>
       </div>
 
+      {/* Display resumes */}
       {!isEditing && (
         <div className="space-y-2">
           {initialData?.resumes.map((item) => (
@@ -165,6 +173,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
         </div>
       )}
 
+      {/* Editing mode */}
       {isEditing && (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">

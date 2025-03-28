@@ -11,7 +11,6 @@ interface PageContentProps {
 }
 
 const PageContent = ({ jobs, userId }: PageContentProps) => {
-
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8 p-4">
@@ -37,7 +36,6 @@ const PageContent = ({ jobs, userId }: PageContentProps) => {
       </div>
     );
   }
-
 
   return (
     <section className="py-8 px-4 md:px-6">

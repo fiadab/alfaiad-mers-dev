@@ -10,7 +10,7 @@ import { HomeCompaniesList } from "../_components/home-companies-list";
 import { RecommendedJobslist } from "../_components/recommended-jobs";
 import Footer from "@/components/footer";
 import { redirect } from "next/navigation";
-import HomePageCarousel from "@/components/home-page-carousel";
+import HomePageCarousel from "../_components/home-page-carousel";
 const DashboardHomePage = async () => {
     const { userId } = await auth();
     const user = await currentUser();
@@ -25,7 +25,7 @@ const DashboardHomePage = async () => {
     ]);
 
     return (
-    <div className="flex-col p-6 px-4 space-y-24">
+    <div className="flex-col p-4 space-y-12">
         <Box className="flex-col justify-center w-full scroll-py-4 mt-12">
             <h2 className="text-2xl md:text-4xl font-sans font-bold tracking-wider text-neutral-600">
                 Find Your Dream Job
@@ -38,7 +38,9 @@ const DashboardHomePage = async () => {
         <HomeSearchContainer />
 
         {/* استبدل هذا المكون بالمكون الجديد للكاروسيل */}
-        <HomePageCarousel />
+        <div className="relative w-full mx-auto max-w-7xl">
+    <HomePageCarousel />
+  </div>
 
         <HomescreenCategoriesContainer categories={categories} />
         <HomeCompaniesList companies={companies} />
