@@ -8,11 +8,12 @@ import { DataTable } from "@/components/ui/data-table";
 import { auth } from "@clerk/nextjs/server";
 import { columns } from "./_components/columns";
 
-
 const JobApplicantsPage = async (
   { params }: { params: { jobId: string } }
 ) => {
   const { userId } = await auth();
+  
+  // استعلام للحصول على الوظيفة المرتبطة بالمستخدم
   const job = await db.job.findUnique({
     where: {
       id: params.jobId,
@@ -24,8 +25,14 @@ const JobApplicantsPage = async (
     redirect("/admin/jobs");
   }
 
+  // استعلام للحصول على جميع الـ profiles مع تضمين appliedJobs و resumes
   let profiles = await db.userProfile.findMany({
     include: {
+      appliedJobs: {  // تضمين appliedJobs
+        include: {
+          job: true, // تضمين job المرتبطة بـ appliedJob
+        },
+      },
       resumes: {
         orderBy: {
           createdAt: "desc",
@@ -34,30 +41,32 @@ const JobApplicantsPage = async (
     },
   });
 
-  const filteredProfiles = profiles?.filter((profile) =>
+  // فلترة الـ profiles بناءً على الـ jobId
+  const filteredProfiles = profiles.filter((profile) =>
     profile.appliedJobs.some(
       (appliedJob) => appliedJob.jobId === params.jobId
     )
   );
 
-  const formattedProfiles: ApplicantColumns[] = filteredProfiles.map((profile) => ({
-    id: profile.userId,
-    fullname: profile.fullName ?? "",
-    email: profile.email ?? "",
-    contact: profile.contact ?? "",
-    appliedAt: profile.appliedJobs.find((job) => job.jobId === params.jobId)
-      ?.appliedAt
-      ? format(
-          new Date(
-            profile.appliedJobs.find((job) => job.jobId === params.jobId)
-              ?.appliedAt ?? ""
-          ),
-          "MMM do, yyyy"
-        )
-      : "",
-    resume: profile.resumes.find((res) => res.id === profile.activeResumeId)?.url ?? "",
-    resumeName: profile.resumes.find((res) => res.id === profile.activeResumeId)?.name ?? "",
-  }));
+  // تنسيق الـ profiles ليتم عرضها في الجدول
+  const formattedProfiles: ApplicantColumns[] = filteredProfiles.map((profile) => {
+    // البحث عن appliedJob المرتبط بالـ jobId
+    const appliedJob = profile.appliedJobs.find((job) => job.jobId === params.jobId);
+    // البحث عن الـ resume المرتبط بالـ activeResumeId
+    const resume = profile.resumes.find((res) => res.id === profile.activeResumeId);
+
+    return {
+      id: profile.userId,
+      fullname: profile.fullName ?? "",
+      email: profile.email ?? "",
+      contact: profile.contact ?? "",
+      appliedAt: appliedJob
+        ? format(new Date(appliedJob.appliedAt ?? ""), "MMM do, yyyy")
+        : "",
+      resume: resume?.url ?? "",
+      resumeName: resume?.name ?? "",
+    };
+  });
 
   return (
     <div className="flex-col p-4 md:p-8 items-center justify-center flex">
