@@ -92,6 +92,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
     "eslint-config-next": "^13.5.11",
+    "handlebars-loader": "^1.7.3",
     "postcss": "^8.4.38",
     "prisma": "^6.5.0",
     "tailwind-scrollbar": "^3.0.0",

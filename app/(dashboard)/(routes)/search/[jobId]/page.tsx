@@ -1,64 +1,75 @@
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
+import { UserProfileWithAppliedJobs } from "@/types/userProfile";
 import { redirect } from "next/navigation";
-import { JobDetailsPageContent } from "./_components/job-details-page-content";
-import { Separator } from "@/components/ui/separator";
-import { getJobs } from "@/actions/get-jobs";
-import { Box } from "lucide-react";
-import PageContent from "../_components/page-content";
 
 const JobDetailsPage = async ({ params }: { params: { jobId: string } }) => {
   const { userId } = await auth();
 
-  // Fetch job details from the database
+  // Fetch job details
   const job = await db.job.findUnique({
-    where: {
-      id: params.jobId,
-    },
+    where: { id: params.jobId },
     include: {
       company: true,
       attachments: true,
     },
   });
 
-  // Redirect if the job does not exist
-  if (!job) {
-    redirect("/search");
-  }
+  if (!job) redirect("/search");
 
-  // Fetch the user profile, including resumes and applied jobs
+  // Fetch user profile
   const profile = await db.userProfile.findUnique({
-    where: {
-      userId: userId as string,
-    },
+    where: { userId: userId as string },
     include: {
-      resumes: {
-        orderBy: {
-          createdAt: "desc",
-        },
+      resumes: { orderBy: { createdAt: "desc" } },
+      appliedJobs: {
+        include: { job: true }
       },
-      appliedJobs: true, // ✅ Ensure appliedJobs is included
     },
   });
 
-  // Fetch all jobs and filter related ones
-  const { jobs } = await getJobs({});
-  const filteredJobs = jobs.filter(
-    (j) => j.id !== job.id && j.categoryId === job.categoryId
+  if (!profile) redirect("/login");
+
+  // Handle null values
+  const safeProfile = {
+    ...profile,
+    fullName: profile.fullName ?? "",
+    email: profile.email ?? "",
+    contact: profile.contact ?? "",
+  };
+
+  // Check application status
+  const hasApplied = safeProfile.appliedJobs.some(
+    appliedJob => appliedJob.job.id === job.id
   );
 
   return (
     <div className="flex-col p-4 md:p-8">
-      <JobDetailsPageContent job={job} jobId={job.id} userProfile={profile} />
+      <h1 className="text-3xl font-bold mb-4">{job.title}</h1>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Company Information</h2>
+        <p>{job.company?.name}</p>
+      </div>
+      
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Job Description</h2>
+        <p className="whitespace-pre-wrap">{job.description}</p>
+      </div>
 
-      {filteredJobs && filteredJobs.length > 0 && (
-        <>
-          <Separator />
-          <Box className="flex-col my-4 items-center justify-start px-4 gap-2">
-            <h2 className="text-lg font-semibold">Related Jobs</h2>
-          </Box>
-          <PageContent jobs={filteredJobs} userId={userId} />
-        </>
+      {hasApplied ? (
+        <div className="bg-green-100 p-4 rounded-lg">
+          <p className="text-green-700">✓ You've already applied for this position</p>
+        </div>
+      ) : (
+        <div className="bg-blue-100 p-4 rounded-lg">
+          <p className="text-blue-700">Apply for this position</p>
+        </div>
+      )}
+
+      {safeProfile.fullName && (
+        <div className="mt-4">
+          <p>Applicant Name: {safeProfile.fullName}</p>
+        </div>
       )}
     </div>
   );
