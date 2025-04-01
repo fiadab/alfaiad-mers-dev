@@ -1,11 +1,10 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { useEdgeStore } from "@/lib/edgestore";
+import { getEdgeStore } from "@/lib/edgestoreServer";
 
-// PATCH: Update job attachments
 export async function PATCH(req: Request) {
-  const { edgestore } = useEdgeStore();
+  const edgestore = getEdgeStore();
 
   try {
     const { userId } = await auth();
@@ -13,36 +12,29 @@ export async function PATCH(req: Request) {
 
     const { jobId, attachments } = await req.json();
 
-    // Validate job ownership
+    // التحقق من ملكية الوظيفة
     const job = await db.job.findUnique({
       where: { id: jobId, userId },
     });
     if (!job) return NextResponse.json("Job not found", { status: 404 });
 
-    // Sync with EdgeStore
+    // جلب المرفقات الموجودة من قاعدة البيانات
     const existingAttachments = await db.attachment.findMany({ where: { jobId } });
     const toDelete = existingAttachments.filter(
       (ea) => !attachments.some((a: any) => a.url === ea.url)
     );
 
-    // Delete orphaned attachments
-    await Promise.all(
-      toDelete.map(async (attachment) => {
-        await edgestore.myProtectedFiles.delete({ url: attachment.url });
-      })
-    );
+    // حذف المرفقات من قاعدة البيانات
+    await db.attachment.deleteMany({
+      where: { id: { in: toDelete.map((d) => d.id) } },
+    });
 
-    // Update database
-    await db.$transaction([
-      db.attachment.deleteMany({
-        where: { id: { in: toDelete.map((d) => d.id) } },
-      }),
-      db.attachment.createMany({
-        data: attachments
-          .filter((a: any) => !existingAttachments.some((ea) => ea.url === a.url))
-          .map((a: any) => ({ jobId, ...a })), // Ensure `.map` is outside `.filter`
-      }),
-    ]);
+    // إضافة المرفقات الجديدة إلى قاعدة البيانات
+    await db.attachment.createMany({
+      data: attachments
+        .filter((a: any) => !existingAttachments.some((ea) => ea.url === a.url))
+        .map((a: any) => ({ jobId, ...a })),
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

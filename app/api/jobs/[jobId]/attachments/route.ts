@@ -1,43 +1,44 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { useEdgeStore } from "@/lib/edgestore";
+import { getEdgeStore } from "@/lib/edgestoreServer"; // Use server-side helper
 import { z } from "zod";
 
-// ✅ Define the attachment type
+// Define the attachment type
 interface AttachmentData {
   url: string;
   name: string;
 }
 
-// ✅ Define validation schema for attachments
+// Define validation schema for attachments
 const attachmentSchema = z.object({
   url: z.string().url("Invalid URL"),
   name: z.string().min(1, "File name is required"),
 });
 
 export async function POST(req: Request) {
-  const { edgestore } = useEdgeStore(); // ✅ Initialize EdgeStore
+  // Initialize EdgeStore using a server-side method instead of a hook
+  const edgestore = getEdgeStore();
 
   try {
-    // ✅ Authenticate the user
+    // Authenticate the user
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Parse the request body
+    // Parse the request body
     const { jobId, attachments } = await req.json() as {
       jobId: string;
       attachments: AttachmentData[];
     };
 
-    // ✅ Validate request data
+    // Validate request data
     if (!jobId || !attachments || attachments.length === 0) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    // ✅ Validate each attachment against schema
+    // Validate each attachment against schema
     const validationErrors = attachments
       .map((attachment) => attachmentSchema.safeParse(attachment))
       .filter((result) => !result.success)
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: validationErrors }, { status: 400 });
     }
 
-    // ✅ Check if the job exists and belongs to the user
+    // Check if the job exists and belongs to the user
     const job = await db.job.findUnique({
       where: { id: jobId, userId },
     });
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    // ✅ Create attachments in the database
+    // Create attachments in the database
     const createdAttachments = await db.attachment.createMany({
       data: attachments.map((a) => ({
         jobId,
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("❌ Attachment Creation Error:", error);
 
-    // ✅ Handle unknown error types safely
+    // Handle unknown error types safely
     const errorMessage =
       error instanceof Error ? error.message : "Internal Server Error";
 

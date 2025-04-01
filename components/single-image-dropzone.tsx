@@ -5,6 +5,7 @@ import * as React from "react";
 import { useDropzone, type DropzoneOptions } from "react-dropzone";
 import { twMerge } from "tailwind-merge";
 import { Button } from "./ui/button";
+import Image from "next/image";
 
 const variants = {
   base: "relative rounded-md flex justify-center items-center flex-col cursor-pointer min-h-[150px] min-w-[200px] border border-dashed border-gray-400 dark:border-gray-300 transition-colors duration-200 ease-in-out",
@@ -108,7 +109,16 @@ const SingleImageDropzone = React.forwardRef<HTMLInputElement, InputProps>(
           <input ref={ref} {...getInputProps()} />
 
           {imageUrl ? (
-            <img className="h-full w-full rounded-md object-cover" src={imageUrl} alt={acceptedFiles[0]?.name} />
+
+            <Image
+              className="h-full w-full rounded-md object-cover"
+              src={imageUrl}
+              alt={acceptedFiles[0]?.name || "Uploaded Image"}
+              width={width}   // استخدم الأبعاد المناسبة هنا
+              height={height} // استخدم الأبعاد المناسبة هنا
+              layout="responsive"
+            />
+            
           ) : (
             <div className="flex flex-col items-center justify-center text-xs text-gray-400">
               <UploadCloudIcon className="mb-2 h-7 w-7" />

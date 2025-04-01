@@ -5,7 +5,7 @@ export async function DELETE(req: Request) {
   try {
     const { jobId, url } = await req.json();
 
-    // التحقق من وجود jobId و url
+    // Validate that jobId and url are provided
     if (!jobId || !url) {
       return NextResponse.json(
         { error: "Job ID and URL are required." },
@@ -13,12 +13,12 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // حذف المرفقات من قاعدة البيانات
+    // Delete the attachment from the database
     const deletedAttachments = await db.attachment.deleteMany({
       where: { jobId, url },
     });
 
-    // التحقق مما إذا تم حذف أي مرفقات
+    // Check if any attachments were deleted
     if (deletedAttachments.count === 0) {
       return NextResponse.json(
         { error: "No attachments found to delete." },

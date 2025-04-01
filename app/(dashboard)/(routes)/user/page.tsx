@@ -28,7 +28,7 @@ const ProfilePage = async () => {
     redirect("/sign-in");
   }
 
-  // Fetch user profile
+  // Fetch user profile including appliedJobs
   const profile = await db.userProfile.findUnique({
     where: {
       userId,
@@ -39,6 +39,7 @@ const ProfilePage = async () => {
           createdAt: "desc",
         },
       },
+      appliedJobs: true, // Ensure appliedJobs is fetched
     },
   });
 
@@ -58,7 +59,7 @@ const ProfilePage = async () => {
 
   // Filter and format applied jobs
   const filteredAppliedJobs =
-    profile && profile?.appliedJobs.length > 0
+    Array.isArray(profile?.appliedJobs) && profile.appliedJobs.length > 0
       ? jobs
           .filter((job) =>
             profile.appliedJobs.some(
@@ -73,15 +74,17 @@ const ProfilePage = async () => {
           }))
       : [];
 
-  const formattedJobs: AppliedJobsColumns[] = filteredAppliedJobs.map((job) => ({
-    id: job.id,
-    title: job.title,
-    company: job.company ? job.company.name : "",
-    category: job.category ? job.category?.name : "",
-    appliedAt: job.appliedAt
-      ? format(new Date(job.appliedAt), "MMM do, yyyy")
-      : "",
-  }));
+  const formattedJobs: AppliedJobsColumns[] = filteredAppliedJobs.map(
+    (job) => ({
+      id: job.id,
+      title: job.title,
+      company: job.company ? job.company.name : "",
+      category: job.category ? job.category?.name : "",
+      appliedAt: job.appliedAt
+        ? format(new Date(job.appliedAt), "MMM do, yyyy")
+        : "",
+    })
+  );
 
   // Fetch followed companies
   const followedCompanies = await db.company.findMany({

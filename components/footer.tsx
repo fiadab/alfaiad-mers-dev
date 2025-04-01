@@ -1,16 +1,19 @@
 "use client";
-
+import Image from "next/image";
 const Footer = () => {
   return (
     <footer className="bg-black text-white py-8">
       <div className="container mx-auto px-4">
         {/* Logo Section */}
         <div className="flex justify-center mb-8">
-          <img
-            src="/img/Logo.png"
-            alt="Job Portal Logo"
-            className="w-16 h-auto md:w-24"
-          />
+        <Image
+  src="/img/Logo.png"
+  alt="Job Portal Logo"
+  width={96}  // عدل الأبعاد بحسب متطلباتك
+  height={96} // عدل الأبعاد بحسب متطلباتك
+  className="w-16 h-auto md:w-24"
+/>
+
         </div>
 
         {/* Top Section */}
