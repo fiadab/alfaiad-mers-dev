@@ -1,13 +1,14 @@
+// app/(dashboard)/(routes)/search/[jobId]/page.tsx
+
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { UserProfile } from "@/types/userProfile";
 import { redirect } from "next/navigation";
-import { useMemo } from "react";
 
 const JobDetailsPage = async ({ params }: { params: { jobId: string } }) => {
   const { userId } = await auth();
 
-  // Fetch job with company details
+  // جلب بيانات الوظيفة مع معلومات الشركة
   const job = await db.job.findUnique({
     where: { id: params.jobId },
     include: {
@@ -18,7 +19,7 @@ const JobDetailsPage = async ({ params }: { params: { jobId: string } }) => {
 
   if (!job) redirect("/search");
 
-  // Fetch user profile with relationships
+  // جلب بيانات الملف الشخصي للمستخدم مع العلاقات
   const profile = await db.userProfile.findUnique({
     where: { userId: userId as string },
     include: {
@@ -27,39 +28,36 @@ const JobDetailsPage = async ({ params }: { params: { jobId: string } }) => {
         include: {
           job: {
             include: {
-              company: true // Include company in job relation
+              company: true
             }
           }
         }
       },
     },
-  }) as UserProfile | null; // Type assertion
+  }) as UserProfile | null;
 
   if (!profile) redirect("/login");
 
-  // Safe profile data with defaults
+  // بيانات الملف الشخصي مع قيم افتراضية
   const safeProfile = {
     ...profile,
     fullName: profile.fullName || "",
     email: profile.email || "",
     contact: profile.contact || "",
-    appliedJobs: profile.appliedJobs || [], // Default empty array
+    appliedJobs: profile.appliedJobs || [],
   };
 
-  // Memoized application check
-  const hasApplied = useMemo(
-    () => safeProfile.appliedJobs.some(
-      (appliedJob) => appliedJob.job.id === job.id
-    ),
-    [safeProfile.appliedJobs, job.id]
+  // التحقق من التقدم للوظيفة
+  const hasApplied = safeProfile.appliedJobs.some(
+    (appliedJob) => appliedJob.job.id === job.id
   );
 
   return (
     <div className="flex-col p-4 md:p-8">
-      {/* Application status indicator */}
+      {/* مؤشر حالة التقدم */}
       {hasApplied && (
         <div className="bg-green-100 p-4 rounded-lg">
-          <p className="text-green-700">✓ You've applied for this position</p>
+          <p className="text-green-700">✓ لقد تقدمت لهذه الوظيفة</p>
         </div>
       )}
     </div>

@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,7 +25,6 @@ model Job {
   yearsOfExperience String?
   workMode          String?
 
-  // Relations
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?  @db.ObjectId
 
@@ -31,7 +32,7 @@ model Job {
   categoryId String?   @db.ObjectId
 
   attachments Attachment[]
-  appliedJobs AppliedJob[] // <-- الحقل المقابل للعلاقة مع AppliedJob
+  appliedJobs AppliedJob[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
