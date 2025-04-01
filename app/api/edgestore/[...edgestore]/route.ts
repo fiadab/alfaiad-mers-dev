@@ -18,7 +18,7 @@ function createContext({ req }: CreateContextOptions): Context {
 
 const es = initEdgeStore.context<Context>().create();
 
-export const edgeStoreRouter = es.router({
+const edgeStoreRouter = es.router({
   myPublicImages: es.imageBucket({
     maxSize: 5 * 1024 * 1024, // 5 ميجابايت
   })
@@ -52,6 +52,4 @@ const handler = createEdgeStoreNextHandler({
   router: edgeStoreRouter,
   createContext,
 });
-
-export { handler as GET, handler as POST };
-export { handler as PUT, handler as DELETE };
+export { handler as GET, handler as POST, handler as PUT, handler as DELETE };
