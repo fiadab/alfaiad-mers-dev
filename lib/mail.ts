@@ -1,76 +1,69 @@
 import nodemailer from "nodemailer";
-import handlebars from "handlebars";
-import toast from "react-hot-toast";
+import { compile } from "handlebars/runtime"; // التعديل الرئيسي هنا
 import { ThankYouTemplate } from "./designs/thank-you";
 import { SendSelectedTemplate } from "./designs/send-selected-template";
 import { SendRejectionTemplate } from "./designs/send-rejection-template";
 
-export const sendMail = async({
-   to,
-   name,
-   subject,
-   body,
-}:{
-    to: string;
-    name: string;
-    subject: string;
-    body: string;
-}) => {
-    const {SMTP_PASSWORD, SMTP_EMAIL} = process.env;
-
-    const transport = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: SMTP_EMAIL,
-            pass: SMTP_PASSWORD,
-        }
-    });
-
-    try {
-        const textResult = await transport.verify();
-        console.log(textResult);
-    } catch (error) {
-        console.log(error);
-        toast.error((error as Error)?.message);
-        return;
-    }
-
-
-    try {
-        const sendResult = await transport.sendMail({
-            from: SMTP_EMAIL,
-            to,
-            subject,
-            html: body,
-        });
-        return sendResult;
-    } catch (error) {
-        console.log(error);
-        toast.error((error as Error)?.message);
-        return;
-    }
+type EmailParams = {
+  to: string;
+  name: string;
+  subject: string;
+  body: string;
 };
 
-export const compileThankyouEmailTemplate = (name : string) => {
-    const template = handlebars.compile(ThankYouTemplate);
-    const htmlBody = template({
-        name : name,
-    });
-    return htmlBody;
+type TemplateData = {
+  name: string;
 };
 
-export const compileSendSelectedEmailTemplate = (name : string) => {
-    const template = handlebars.compile(SendSelectedTemplate);
-    const htmlBody = template({
-        name : name,
-    });
-    return htmlBody;
+// دالة مساعدة لتجميع القوالب
+const compileTemplate = (template: string, data: TemplateData) => {
+  return compile(template)(data);
 };
 
-export const compileSendRejectionEmailTemplate = (name : string) => {
-    const template = handlebars.compile(SendRejectionTemplate);
-    const htmlBody = template({
-        name : name,
+export const sendMail = async ({ to, name, subject, body }: EmailParams) => {
+  const { SMTP_PASSWORD, SMTP_EMAIL } = process.env;
+  
+  // التحقق من وجود متغيرات البيئة
+  if (!SMTP_EMAIL || !SMTP_PASSWORD) {
+    throw new Error("SMTP configuration missing");
+  }
+
+  const transport = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: SMTP_EMAIL,
+      pass: SMTP_PASSWORD,
+    },
+  });
+
+  try {
+    const sendResult = await transport.sendMail({
+      from: `"Your Company Name" <${SMTP_EMAIL}>`,
+      to,
+      subject,
+      html: body,
+      text: `${subject}\n\nHello ${name},\nPlease enable HTML to view this message.`,
     });
-    return htmlBody;
+    
+    return { success: true, messageId: sendResult.messageId };
+  } catch (error) {
+    console.error("Mail sending failed:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+};
+
+// دوال تجميع القوالب
+export const compileThankyouEmailTemplate = (name: string) => {
+  return compileTemplate(ThankYouTemplate, { name });
+};
+
+export const compileSendSelectedEmailTemplate = (name: string) => {
+  return compileTemplate(SendSelectedTemplate, { name });
+};
+
+export const compileSendRejectionEmailTemplate = (name: string) => {
+  return compileTemplate(SendRejectionTemplate, { name });
 };

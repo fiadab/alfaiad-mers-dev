@@ -16,7 +16,24 @@ const nextConfig = {
     formats: ['image/webp'],
     minimumCacheTTL: 86400,
   },
+  webpack: (config, { isServer }) => {
+    // إصلاح مشكلة HandleBars لعمليات البناء
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        handlebars: false
+      };
+    }
+
+    // تجاهل ملفات Handlebars غير الضرورية
+    config.module.rules.push({
+      test: /\.js$/,
+      include: /node_modules\/handlebars/,
+      use: 'null-loader'
+    });
+
+    return config;
+  }
 };
 
 export default nextConfig;
-
