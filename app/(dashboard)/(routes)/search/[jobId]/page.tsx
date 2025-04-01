@@ -1,12 +1,13 @@
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { UserProfileWithAppliedJobs } from "@/types/userProfile";
+import { UserProfile } from "@/types/userProfile";
 import { redirect } from "next/navigation";
+import { useMemo } from "react";
 
 const JobDetailsPage = async ({ params }: { params: { jobId: string } }) => {
   const { userId } = await auth();
 
-  // Fetch job details
+  // Fetch job with company details
   const job = await db.job.findUnique({
     where: { id: params.jobId },
     include: {
@@ -17,58 +18,48 @@ const JobDetailsPage = async ({ params }: { params: { jobId: string } }) => {
 
   if (!job) redirect("/search");
 
-  // Fetch user profile
+  // Fetch user profile with relationships
   const profile = await db.userProfile.findUnique({
     where: { userId: userId as string },
     include: {
       resumes: { orderBy: { createdAt: "desc" } },
       appliedJobs: {
-        include: { job: true }
+        include: {
+          job: {
+            include: {
+              company: true // Include company in job relation
+            }
+          }
+        }
       },
     },
-  });
+  }) as UserProfile | null; // Type assertion
 
   if (!profile) redirect("/login");
 
-  // Handle null values
+  // Safe profile data with defaults
   const safeProfile = {
     ...profile,
-    fullName: profile.fullName ?? "",
-    email: profile.email ?? "",
-    contact: profile.contact ?? "",
+    fullName: profile.fullName || "",
+    email: profile.email || "",
+    contact: profile.contact || "",
+    appliedJobs: profile.appliedJobs || [], // Default empty array
   };
 
-  // Check application status
-  const hasApplied = safeProfile.appliedJobs.some(
-    appliedJob => appliedJob.job.id === job.id
+  // Memoized application check
+  const hasApplied = useMemo(
+    () => safeProfile.appliedJobs.some(
+      (appliedJob) => appliedJob.job.id === job.id
+    ),
+    [safeProfile.appliedJobs, job.id]
   );
 
   return (
     <div className="flex-col p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-4">{job.title}</h1>
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Company Information</h2>
-        <p>{job.company?.name}</p>
-      </div>
-      
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Job Description</h2>
-        <p className="whitespace-pre-wrap">{job.description}</p>
-      </div>
-
-      {hasApplied ? (
+      {/* Application status indicator */}
+      {hasApplied && (
         <div className="bg-green-100 p-4 rounded-lg">
-          <p className="text-green-700">✓ You've already applied for this position</p>
-        </div>
-      ) : (
-        <div className="bg-blue-100 p-4 rounded-lg">
-          <p className="text-blue-700">Apply for this position</p>
-        </div>
-      )}
-
-      {safeProfile.fullName && (
-        <div className="mt-4">
-          <p>Applicant Name: {safeProfile.fullName}</p>
+          <p className="text-green-700">✓ You've applied for this position</p>
         </div>
       )}
     </div>
