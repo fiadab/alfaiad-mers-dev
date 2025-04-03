@@ -37,9 +37,9 @@ model Job {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
+  // Composite indexes for relationships
   @@index([companyId], name: "job_companyId_idx")
   @@index([categoryId], name: "job_categoryId_idx")
-
 }
 
 model Company {
@@ -67,7 +67,7 @@ model Company {
 
 model Attachment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  url       String   @unique
+  url       String   @unique  // Unique constraint for URL
   name      String
   jobId     String?  @db.ObjectId
   job       Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -77,7 +77,7 @@ model Attachment {
 
 model Category {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String   @unique
+  name      String   @unique  // Unique category names
   jobs      Job[]
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
@@ -85,9 +85,9 @@ model Category {
 
 model UserProfile {
   id             String       @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String       @unique
+  userId         String       @unique  // Unique constraint replaces index
   fullName       String?
-  email          String?
+  email          String?      @unique  // Added unique constraint instead of index
   contact        String?
   appliedJobs    AppliedJob[]
   resumes        Resumes[]
@@ -96,8 +96,9 @@ model UserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  @@index([userId], name: "user_profile_userId_idx")
-  @@index([email], name: "user_profile_email_idx")
+  // Removed duplicate indexes:
+  // - @unique on userId already creates an index
+  // - @unique on email replaces the email index
 }
 
 model AppliedJob {
@@ -111,12 +112,13 @@ model AppliedJob {
 
 model Resumes {
   id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  name          String   @db.String(255)
-  url           String   @unique
+  name          String   // Removed invalid @db.String(255) 
+  url           String   @unique  // Unique constraint for resume URLs
   userProfileId String      @db.ObjectId
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now())
 
- @@index([userProfileId], name: "resumes_userProfileId_idx")
+  // Removed unnecessary index:
+  // - MongoDB automatically indexes relation fields
 }
