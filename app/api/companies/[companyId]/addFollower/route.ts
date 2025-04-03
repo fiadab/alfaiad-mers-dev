@@ -2,6 +2,9 @@ import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// اجعل المسار ديناميكيًا لمنع محاولة تجميع بيانات الصفحة أثناء البناء
+export const dynamic = "force-dynamic";
+
 export const PATCH = async (
   req: Request,
   { params }: { params: { companyId: string } }
