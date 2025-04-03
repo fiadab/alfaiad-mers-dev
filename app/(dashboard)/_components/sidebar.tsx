@@ -4,7 +4,7 @@ import { Logo } from './logo';
 import { SidebarRoutes } from './sidebar-routes';
 import { useEffect, useState } from 'react';
 
-// غيرنا التصدير إلى default
+// غيرنا التصدير إلى defaults
 const Sidebar = () => {
   const [isMounted, setIsMounted] = useState(false);
 
