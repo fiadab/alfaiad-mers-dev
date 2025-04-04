@@ -1,11 +1,12 @@
 "use client";
+
 import { Banner } from "@/components/banner";
 import Box from "@/components/box";
 import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
 import { Preview } from "@/components/preview";
 import { ApplyModel } from "@/components/ui/apply-model";
 import { Button } from "@/components/ui/button";
-import { Attachment, Company, Job, Resumes, UserProfile } from "@prisma/client";
+import { Attachment, Company, Job, Resumes, UserProfile, AppliedJob } from "@prisma/client";
 import axios from "axios";
 import { FileIcon } from "lucide-react";
 import Image from "next/image";
@@ -14,10 +15,12 @@ import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import toast from "react-hot-toast";
 
+// Update the type to include both resumes and appliedJobs arrays.
+// This ensures that userProfile.appliedJobs exists.
 interface JobDetailsPageContentProps {
   job: Job & { company: Company | null; attachments: Attachment[] };
   jobId: string;
-  userProfile: (UserProfile & { resumes: Resumes[] }) | null;
+  userProfile: (UserProfile & { resumes: Resumes[]; appliedJobs: AppliedJob[] }) | null;
 }
 
 export const JobDetailsPageContent = ({
@@ -29,10 +32,11 @@ export const JobDetailsPageContent = ({
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
+  // The appliedJob parameter is now explicitly typed as AppliedJob.
   const hasApplied = useMemo(
     () =>
       userProfile?.appliedJobs?.some(
-        (appliedJob) => appliedJob.jobId === jobId
+        (appliedJob: AppliedJob) => appliedJob.jobId === jobId
       ),
     [userProfile, jobId]
   );

@@ -1,16 +1,17 @@
+// app/(admin)/admin/jobs/_components/columns.tsx
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown } from "lucide-react";
 
-// Type definition for table data
 export type JobColumns = {
   id: string;
   title: string;
   company: string | null;
   category: string | null;
   isPublished: boolean;
-  createdAt: string;
+  createdAt: Date;
+  applications: number;
 };
 
 export const columns: ColumnDef<JobColumns>[] = [
@@ -25,20 +26,23 @@ export const columns: ColumnDef<JobColumns>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
   },
   {
     accessorKey: "company",
     header: "Company",
     cell: ({ row }) => (
-      <span className="text-gray-700">{row.original.company || "No Company"}</span>
+      <span className="text-gray-700">
+        {row.getValue("company") || "No Company"}
+      </span>
     ),
   },
   {
     accessorKey: "category",
     header: "Category",
     cell: ({ row }) => (
-      <span className="text-gray-700">{row.original.category || "Uncategorized"}</span>
+      <span className="text-gray-700">
+        {row.getValue("category") || "Uncategorized"}
+      </span>
     ),
   },
   {
@@ -47,18 +51,29 @@ export const columns: ColumnDef<JobColumns>[] = [
     cell: ({ row }) => (
       <div
         className={`font-semibold ${
-          row.original.isPublished ? "text-green-500" : "text-red-500"
+          row.getValue("isPublished") ? "text-green-500" : "text-red-500"
         }`}
       >
-        {row.original.isPublished ? "Published" : "Draft"}
+        {row.getValue("isPublished") ? "Published" : "Draft"}
       </div>
+    ),
+  },
+  {
+    accessorKey: "applications",
+    header: "Applications",
+    cell: ({ row }) => (
+      <span className="text-gray-700">
+        {row.getValue("applications")}
+      </span>
     ),
   },
   {
     accessorKey: "createdAt",
     header: "Date Posted",
     cell: ({ row }) => (
-      <span className="text-gray-500">{new Date(row.original.createdAt).toLocaleDateString()}</span>
+      <span className="text-gray-500">
+        {new Date(row.getValue("createdAt")).toLocaleDateString()}
+      </span>
     ),
   },
 ];

@@ -1,15 +1,18 @@
 // prisma/schema.prisma
 
+// Generator configuration for Prisma Client
 generator client {
   provider = "prisma-client-js"
 }
 
+// Data source configuration for MongoDB
 datasource db {
   provider     = "mongodb"
   url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
+// Job model represents job postings
 model Job {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   userId            String
@@ -25,23 +28,26 @@ model Job {
   yearsOfExperience String?
   workMode          String?
 
+  // Relation with Company: a job may be linked to a company
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?  @db.ObjectId
 
+  // Relation with Category: categorizes the job
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId String?   @db.ObjectId
 
-  attachments Attachment[]
-  appliedJobs AppliedJob[]
+  attachments Attachment[]  // Array of attachments linked to the job
+  appliedJobs AppliedJob[] // Array of applications to the job
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  // Composite indexes for relationships
+  // Composite indexes for performance
   @@index([companyId], name: "job_companyId_idx")
   @@index([categoryId], name: "job_categoryId_idx")
 }
 
+// Company model represents companies posting jobs
 model Company {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   userId         String
@@ -57,7 +63,7 @@ model Company {
   city           String?
   state          String?
   zipcode        String?
-  jobs           Job[]
+  jobs           Job[]      // A company can have multiple jobs
   followers      String[]
   overview       String?
   whyJoinUs      String?
@@ -65,9 +71,10 @@ model Company {
   updatedAt      DateTime @default(now())
 }
 
+// Attachment model represents files attached to job postings
 model Attachment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  url       String   @unique  // Unique constraint for URL
+  url       String   @unique  // Unique URL for each attachment
   name      String
   jobId     String?  @db.ObjectId
   job       Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -75,6 +82,7 @@ model Attachment {
   updatedAt DateTime @default(now())
 }
 
+// Category model for classifying jobs
 model Category {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique  // Unique category names
@@ -83,24 +91,22 @@ model Category {
   updatedAt DateTime @default(now())
 }
 
+// UserProfile model holds user details including their resumes and applied jobs
 model UserProfile {
   id             String       @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String       @unique  // Unique constraint replaces index
+  userId         String       @unique  // Unique identifier for each user
   fullName       String?
-  email          String?      @unique  // Added unique constraint instead of index
+  email          String?      @unique  // Unique email per user
   contact        String?
-  appliedJobs    AppliedJob[]
-  resumes        Resumes[]
+  appliedJobs    AppliedJob[] // Array of applied job records
+  resumes        Resumes[]    // Array of user resumes
   activeResumeId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-
-  // Removed duplicate indexes:
-  // - @unique on userId already creates an index
-  // - @unique on email replaces the email index
 }
 
+// AppliedJob model links users with the jobs they applied to
 model AppliedJob {
   id            String      @id @default(auto()) @map("_id") @db.ObjectId
   jobId         String      @db.ObjectId
@@ -110,15 +116,13 @@ model AppliedJob {
   job           Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
+// Resumes model stores user resume information
 model Resumes {
   id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  name          String   // Removed invalid @db.String(255) 
-  url           String   @unique  // Unique constraint for resume URLs
+  name          String      // Name of the resume file
+  url           String      @unique  // Unique URL for the resume file
   userProfileId String      @db.ObjectId
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now())
-
-  // Removed unnecessary index:
-  // - MongoDB automatically indexes relation fields
 }

@@ -1,11 +1,11 @@
+// app/(admin)/admin/jobs/page.tsx
 "use client";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { columns } from "./_components/columns";
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { columns, JobColumns } from "./_components/columns";
+import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 const JobPageOverview = () => {
   const { userId } = useAuth();
   const router = useRouter();
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<JobColumns[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,17 +24,20 @@ const JobPageOverview = () => {
 
     const fetchJobs = async () => {
       try {
-        const response = await fetch(`/api/jobs?userId=${userId}`);
+        const response = await fetch(`/api/jobs`);
         if (!response.ok) throw new Error("Failed to fetch jobs");
-
+        
         const data = await response.json();
+        
+        // Transform data for table
         const formattedJobs = data.map((job: any) => ({
           id: job.id,
           title: job.title,
-          company: job.company?.name || "No Company", // ✅ اسم الشركة
-          category: job.category?.name || "Uncategorized", // ✅ التصنيف
+          company: job.company?.name || null,
+          category: job.category?.name || null,
           isPublished: job.isPublished,
-          createdAt: format(new Date(job.createdAt), "MMM d, yyyy"), // ✅ تنسيق التاريخ
+          createdAt: job.createdAt,
+          applications: job.appliedJobs?.length || 0
         }));
 
         setJobs(formattedJobs);
@@ -58,7 +61,6 @@ const JobPageOverview = () => {
 
   return (
     <div className="p-6">
-      {/* زر إضافة وظيفة جديدة */}
       <div className="flex items-end justify-end">
         <Link href="/admin/create">
           <Button>
@@ -68,12 +70,11 @@ const JobPageOverview = () => {
         </Link>
       </div>
 
-      {/* جدول عرض الوظائف */}
       <div className="mt-6">
         <DataTable
           columns={columns}
           data={jobs}
-          searchKey="title" // ✅ البحث حسب العنوان
+          searchKey="title"
         />
       </div>
     </div>
