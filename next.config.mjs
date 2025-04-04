@@ -7,19 +7,19 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "files.edgestore.dev", // For Edgestore service
+        hostname: "files.edgestore.dev",
       },
       {
         protocol: "https",
-        hostname: "img.clerk.com", // For Clerk images
+        hostname: "img.clerk.com",
       },
       {
         protocol: "https",
-        hostname: "**.example.com", // Allow additional external sources
+        hostname: "**.example.com",
       }
     ],
     formats: ["image/webp"],
-    minimumCacheTTL: 86400, // 24 hours
+    minimumCacheTTL: 86400,
   },
 
   // Security headers
@@ -42,9 +42,8 @@ const nextConfig = {
     ];
   },
 
-  // Experimental features (serverActions are enabled by default now)
+  // Experimental features
   experimental: {
-    serverActions: true, // Remove this option if no longer needed, as serverActions are enabled by default
     serverComponentsExternalPackages: ["@prisma/client", "prisma", "mongodb"],
     optimizeCss: true,
   },
@@ -65,7 +64,7 @@ const nextConfig = {
   // General settings
   reactStrictMode: true,
   trailingSlash: true,
-  output: "standalone", // Important for Vercel hosting
+  output: "standalone",
   productionBrowserSourceMaps: true,
 
   // Environment variables
@@ -74,9 +73,6 @@ const nextConfig = {
     EDGE_STORE_SECRET_KEY: process.env.EDGE_STORE_SECRET_KEY,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
   },
-
-  // Note: Middleware settings have been removed from this config.
-  // Next.js automatically applies middleware from the middleware file.
 };
 
 export default nextConfig;
