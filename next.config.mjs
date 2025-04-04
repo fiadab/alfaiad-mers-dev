@@ -1,30 +1,28 @@
-// next.config.mjs
-
-/** 
- * @type {import('next').NextConfig} 
+/**
+ * @type {import('next').NextConfig}
  */
 const nextConfig = {
-  // إعدادات الصور
+  // Image settings
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "files.edgestore.dev", // لخدمة Edgestore
+        hostname: "files.edgestore.dev", // For Edgestore service
       },
       {
         protocol: "https",
-        hostname: "img.clerk.com", // لصور Clerk
+        hostname: "img.clerk.com", // For Clerk images
       },
       {
         protocol: "https",
-        hostname: "**.example.com", // السماح بمصادر خارجية إضافية
+        hostname: "**.example.com", // Allow additional external sources
       }
     ],
     formats: ["image/webp"],
-    minimumCacheTTL: 86400, // 24 ساعة
+    minimumCacheTTL: 86400, // 24 hours
   },
 
-  // إعدادات الأمان
+  // Security headers
   headers: async () => {
     return [
       {
@@ -32,58 +30,53 @@ const nextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: *.edgestore.dev img.clerk.com;"
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: *.edgestore.dev img.clerk.com;",
           },
           {
             key: "X-Frame-Options",
-            value: "DENY"
-          }
-        ]
-      }
-    ]
+            value: "DENY",
+          },
+        ],
+      },
+    ];
   },
 
-  // إعدادات Prisma و MongoDB
+  // Experimental features (serverActions are enabled by default now)
   experimental: {
-    serverActions: true,
-    serverComponentsExternalPackages: [
-      "@prisma/client", 
-      "prisma",
-      "mongodb"
-    ],
+    serverActions: true, // Remove this option if no longer needed, as serverActions are enabled by default
+    serverComponentsExternalPackages: ["@prisma/client", "prisma", "mongodb"],
     optimizeCss: true,
   },
 
-  // إعدادات Webpack
+  // Webpack configuration
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       "mongodb-client-encryption": false,
-      "aws4": false,
-      "snappy": false,
+      aws4: false,
+      snappy: false,
       "bson-ext": false,
-      "kerberos": false
-    }
-    return config
+      kerberos: false,
+    };
+    return config;
   },
 
-  // إعدادات عامة
+  // General settings
   reactStrictMode: true,
   trailingSlash: true,
-  output: "standalone", // مهم لاستضافة Vercel
+  output: "standalone", // Important for Vercel hosting
   productionBrowserSourceMaps: true,
 
-  // إعدادات البيئة
+  // Environment variables
   env: {
     EDGE_STORE_ACCESS_KEY: process.env.EDGE_STORE_ACCESS_KEY,
     EDGE_STORE_SECRET_KEY: process.env.EDGE_STORE_SECRET_KEY,
-    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
   },
 
-  // إعدادات Middleware
-  middleware: {
-    paths: ["/((?!api|_next/static|_next/image|favicon.ico).*)"]
-  }
-}
+  // Note: Middleware settings have been removed from this config.
+  // Next.js automatically applies middleware from the middleware file.
+};
 
-export default nextConfig
+export default nextConfig;
