@@ -1,4 +1,4 @@
-// src/lib/validators/jobs.ts
+//lib/validators/jobs.ts
 import { z } from "zod";
 
 export const jobsFilterSchema = z.object({
