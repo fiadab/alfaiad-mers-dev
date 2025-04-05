@@ -1,4 +1,3 @@
-// app/api/edgestore/[...edgestore]/route.ts
 import 'server-only';
 import { initEdgeStore } from '@edgestore/server';
 import { CreateContextOptions, createEdgeStoreNextHandler } from '@edgestore/server/adapters/next/app';
@@ -15,7 +14,8 @@ type Context = {
   userRole: 'admin' | 'user';
 };
 
-export function createContext({ req }: CreateContextOptions): Context {
+// جعل createContext وظيفة محلية دون تصديرها
+function createContext({ req }: CreateContextOptions): Context {
   try {
     const { userId, sessionClaims } = auth();
     return {
@@ -34,8 +34,8 @@ const edgeStoreRouter = es.router({
   myPublicImages: es.imageBucket({
     maxSize: 5 * 1024 * 1024,
   })
-  .input(z.object({ type: z.enum(['post', 'profile']) }))
-  .path(({ input }) => [{ type: input.type }]),
+    .input(z.object({ type: z.enum(['post', 'profile']) }))
+    .path(({ input }) => [{ type: input.type }]),
 
   myProtectedFiles: es
     .fileBucket()
