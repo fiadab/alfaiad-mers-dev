@@ -1,9 +1,10 @@
+// middleware.ts
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
 import { db } from './lib/db';
 
-// Define protected routes using regular expressions
+// 1. Configure protected routes
 const protectedRoutes = createRouteMatcher([
   '/dashboard(.*)',
   '/admin(.*)',
@@ -11,45 +12,56 @@ const protectedRoutes = createRouteMatcher([
   '/profile(.*)'
 ]);
 
-// Middleware function with Clerk integration
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (auth, req: NextRequest) => {
   try {
+    // 2. Bypass EdgeStore API routes
+    if (req.nextUrl.pathname.startsWith('/api/edgestore')) {
+      return NextResponse.next();
+    }
+
+    // 3. Handle protected routes
     if (protectedRoutes(req)) {
       const { userId } = auth();
 
-      // Handle unauthenticated users
+      // 4. Redirect unauthenticated users
       if (!userId) {
         const signInUrl = new URL('/sign-in', req.url);
-        signInUrl.searchParams.set('redirect_url', req.url);
+        signInUrl.searchParams.set('redirect_url', req.url.toString());
         return NextResponse.redirect(signInUrl);
       }
 
-      // Verify user role
+      // 5. Verify user role
       const user = await clerkClient.users.getUser(userId);
-      const role = (user.publicMetadata.role as string) || 'user';
+      const role = user.publicMetadata.role as 'admin' | 'user' ?? 'user';
 
-      // Protect admin routes: only allow access if the user has an admin role
+      // 6. Admin route protection
       if (req.nextUrl.pathname.startsWith('/admin') && role !== 'admin') {
         return NextResponse.redirect(new URL('/unauthorized', req.url));
       }
 
-      // Profile completion check for dashboard routes
+      // 7. Profile completion check
       if (req.nextUrl.pathname.startsWith('/dashboard')) {
         const profile = await db.userProfile.findUnique({
-          where: { userId }
+          where: { userId },
+          select: { id: true }
         });
+        
         if (!profile) {
           return NextResponse.redirect(new URL('/complete-profile', req.url));
         }
       }
     }
-    
-    // Proceed to the next middleware or route handler
+
+    // 8. Continue request processing
     return NextResponse.next();
   } catch (error) {
     console.error('Middleware Error:', error);
-    // Redirect to an error page in case of any errors
+    // 9. Error handling with type safety
     return NextResponse.redirect(new URL('/error', req.url));
   }
 });
-// 
+
+// 10. Type-safe config
+export const config = {
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+};

@@ -12,6 +12,14 @@ export type FileState = {
   abortController?: AbortController;
 };
 
+const variants = {
+  base: "relative rounded-lg flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 bg-white hover:bg-gray-50 cursor-pointer transition-colors duration-200",
+  active: "border-blue-500 bg-blue-50 border-2",
+  disabled: "bg-gray-100 opacity-50 cursor-not-allowed",
+  accept: "border-green-500 bg-green-50",
+  reject: "border-red-500 bg-red-50",
+};
+
 const ERROR_MESSAGES = {
   fileTooLarge(maxSize: number) {
     return `File too large. Max size: ${formatFileSize(maxSize)}`;
@@ -27,14 +35,6 @@ const ERROR_MESSAGES = {
   },
 };
 
-const variants = {
-  base: "relative rounded-md flex justify-center items-center flex-col cursor-pointer border border-dashed transition-colors duration-200",
-  active: "border-2",
-  disabled: "bg-gray-200 cursor-default pointer-events-none",
-  accept: "border-blue-500 bg-blue-500 bg-opacity-10",
-  reject: "border-red-700 bg-red-700 bg-opacity-10",
-};
-
 interface InputProps {
   className?: string;
   value?: FileState[];
@@ -46,9 +46,7 @@ interface InputProps {
 
 export const MultiFileDropzone = React.forwardRef<HTMLInputElement, InputProps>(
   ({ dropzoneOptions, value, className, disabled, onFilesAdded, onChange }, ref) => {
-
     const [customError, setCustomError] = React.useState<string>();
-
 
     const {
       getRootProps,
@@ -81,35 +79,18 @@ export const MultiFileDropzone = React.forwardRef<HTMLInputElement, InputProps>(
       ...dropzoneOptions,
     });
 
-    const dropZoneClassName = React.useMemo(
-      () =>
-        twMerge(
-          variants.base,
-          isFocused && variants.active,
-          disabled && variants.disabled,
-          (isDragReject ?? fileRejections[0]) && variants.reject,
-          isDragAccept && variants.accept,
-          className,
-        ).trim(),
-      [isFocused, fileRejections, isDragAccept, isDragReject, disabled, className]
-    );
-
-
-    const errorMessage = React.useMemo(() => {
-      if (fileRejections[0]) {
-        const { errors } = fileRejections[0];
-        if (errors[0]?.code === "file-too-large") {
-          return ERROR_MESSAGES.fileTooLarge(dropzoneOptions?.maxSize ?? 0);
-        }
-        
-      }
-      return undefined;
-    }, [fileRejections, dropzoneOptions]);
-
     return (
       <div className="w-full">
-        {/* Dropzone */}
-        <div {...getRootProps({ className: dropZoneClassName })}>
+        <div {...getRootProps({ 
+          className: twMerge(
+            variants.base,
+            isFocused && variants.active,
+            disabled && variants.disabled,
+            (isDragReject ?? fileRejections[0]) && variants.reject,
+            isDragAccept && variants.accept,
+            className
+          )
+        })}>
           <input ref={ref} {...getInputProps()} />
           <div className="flex flex-col items-center justify-center text-xs text-gray-400">
             <UploadCloudIcon className="mb-1 h-7 w-7" />
@@ -119,19 +100,29 @@ export const MultiFileDropzone = React.forwardRef<HTMLInputElement, InputProps>(
           </div>
         </div>
 
-        {/* Message error view*/}
         <div className="mt-1 text-xs text-red-500">
-          {customError ?? errorMessage}
+          {customError ?? (fileRejections[0]?.errors[0]?.message)}
         </div>
 
-        {/* file upload view*/}
         {value?.map(({ file, progress }, index) => (
           <div key={index} className="flex items-center gap-2 p-2 border rounded mt-2">
             <FileIcon className="w-5 h-5" />
             <span className="text-sm truncate">{file.name}</span>
-            {progress === "PENDING" && (
+            {typeof progress === 'number' ? (
+              <div className="ml-auto w-20 h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-300 ${
+                    progress === 100 ? 'bg-green-500' :
+                    progress === 0 ? 'bg-orange-500' :
+                    typeof progress === 'string' ? 'bg-red-500' :
+                    'bg-blue-500'
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            ) : (
               <span className="ml-auto text-sm text-gray-500">
-                Pending...
+                {progress}
               </span>
             )}
           </div>
@@ -142,4 +133,3 @@ export const MultiFileDropzone = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 MultiFileDropzone.displayName = "MultiFileDropzone";
-

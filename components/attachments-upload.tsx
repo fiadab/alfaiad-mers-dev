@@ -29,11 +29,12 @@ export const AttachmentsUploads = ({
             const res = await edgestore.myProtectedFiles.upload({
               file: fileState.file,
               options: { temporary: false },
-              onProgressChange: (progress) => {
+              // FIX 1: Added explicit type for progress parameter
+              onProgressChange: (progress: number) => {
                 setFileStates(prev => prev.map(state => 
                   state.key === fileState.key ? { 
                     ...state, 
-                    progress: typeof progress === 'number' ? progress : 0
+                    progress: progress // No more implicit 'any' type
                   } : state
                 ));
               },
@@ -92,4 +93,3 @@ export const AttachmentsUploads = ({
     </div>
   );
 };
-
