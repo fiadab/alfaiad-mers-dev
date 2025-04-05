@@ -1,4 +1,6 @@
-// app/dashboard/page.tsx
+// Force dynamic rendering to avoid static generation errors due to dynamic server usage.
+export const dynamic = 'force-dynamic';
+
 import { getJobs } from "@/actions/get-jobs";
 import Box from "@/components/box";
 import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
@@ -33,8 +35,8 @@ const ProfilePage = async () => {
 
     // Parallel data fetching
     const [
-      { jobs }, 
-      categories, 
+      { jobs },
+      categories,
       companies,
       profile,
       followedCompanies
@@ -60,7 +62,7 @@ const ProfilePage = async () => {
 
     // Process applied jobs
     const appliedJobs = profile.appliedJobs || [];
-    const filteredAppliedJobs = jobs.filter(job => 
+    const filteredAppliedJobs = jobs.filter(job =>
       appliedJobs.some(appliedJob => appliedJob.jobId === job.id)
     );
 
@@ -70,7 +72,7 @@ const ProfilePage = async () => {
       title: job.title,
       company: job.company?.name || "Unspecified Company",
       category: job.category?.name || "General",
-      appliedAt: job.appliedJobs?.[0]?.appliedAt 
+      appliedAt: job.appliedJobs?.[0]?.appliedAt
         ? format(new Date(job.appliedJobs[0].appliedAt), "MMM do, yyyy")
         : "Not Available",
     }));
@@ -132,7 +134,7 @@ const ProfilePage = async () => {
                   {followedCompanies.map((company) => (
                     <Card className="p-3 space-y-2 relative" key={company.id}>
                       <div className="w-full flex items-center justify-end">
-                        <Link 
+                        <Link
                           href={`/companies/${company.id}`}
                           aria-label="View company details"
                         >
@@ -172,15 +174,14 @@ const ProfilePage = async () => {
         </div>
       </ErrorBoundary>
     );
-
   } catch (error) {
     console.error('ProfilePage Error:', error);
     let digest = '';
-    
+
     if (error instanceof Error) {
       digest = (error as any).digest || '';
     }
-    
+
     redirect(`/error?source=dashboard&digest=${digest}`);
   }
 };
