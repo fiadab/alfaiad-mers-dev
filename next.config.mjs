@@ -1,3 +1,4 @@
+// next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -14,35 +15,37 @@ const nextConfig = {
     formats: ["image/webp"],
     minimumCacheTTL: 86400,
     dangerouslyAllowSVG: false,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  headers: async () => {
+  async headers() {
+    const securityHeaders = [
+      {
+        key: "Content-Security-Policy",
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' *.clerk.com *.clerk.dev",
+          "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+          "img-src 'self' data: *.edgestore.dev img.clerk.com",
+          "font-src 'self' fonts.gstatic.com",
+          "connect-src 'self' https://api.clerk.com *.clerk.accounts.dev https://files.edgestore.dev",
+          "frame-src 'self' *.clerk.com *.clerk.dev *.clerk.accounts.dev",
+          "worker-src 'self' blob:"
+        ].join("; ")
+      },
+      {
+        key: "X-Frame-Options",
+        value: "DENY",
+      },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=()",
+      },
+    ];
+
     return [
       {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' *.trusted-scripts.com *.clerk.com *.clerk.dev *.clerk.accounts.dev; " +
-              "style-src 'self' 'unsafe-inline' fonts.googleapis.com; " +
-              "img-src 'self' data: *.edgestore.dev img.clerk.com res.cloudinary.com; " +
-              "font-src 'self' fonts.gstatic.com; " +
-              "connect-src 'self' https://api.clerk.com https://clerk.dev https://files.edgestore.dev http://localhost:3000; " +
-              "frame-src 'self' *.clerk.com *.clerk.dev *.clerk.accounts.dev; " +
-              "worker-src 'self' blob:;"
-          },
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-        ],
+        source: "/:path*",
+        headers: securityHeaders,
       },
     ];
   },

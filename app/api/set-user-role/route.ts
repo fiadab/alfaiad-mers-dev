@@ -1,28 +1,27 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { clerkClient } from "@clerk/nextjs/server";
+// app/api/set-role/route.ts
+import { clerkClient } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const { userId } = auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId, role } = await req.json();
+    
+    if (!userId || !['admin', 'user'].includes(role)) {
+      return NextResponse.json(
+        { error: 'Invalid request' },
+        { status: 400 }
+      );
     }
 
     await clerkClient.users.updateUser(userId, {
-      publicMetadata: { role: "admin" }
+      publicMetadata: { role }
     });
 
-    return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString()
-    });
-
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Role Update Error:', error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
