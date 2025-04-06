@@ -1,65 +1,44 @@
-// app/profile/page.tsx
-'use server';
-
+// app/dashboard/page.tsx
 import { getJobs } from "@/actions/get-jobs";
 import Box from "@/components/box";
 import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
-import { DataTable } from "@/components/ui/data-table";
-import { db } from "@/lib/db";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { clerkClient } from "@clerk/nextjs/server";
-import { format } from "date-fns";
-import { truncate } from "lodash";
-import { Eye } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import ErrorBoundary from "@/components/error-boundary";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AppliedJobsColumns, columns } from "./_components/column";
-import { ContactForm } from "./_components/contact-form";
-import { EmailForm } from "./_components/email-form";
 import { NameForm } from "./_components/name-form";
+import { db } from "@/lib/db";
+import { EmailForm } from "./_components/email-form";
+import { ContactForm } from "./_components/contact-form";
 import { ResumeForm } from "./_components/resume-form";
-
-// تعريف النوع لـ publicMetadata
-declare global {
-  namespace Clerk {
-    interface PublicMetadata {
-      role?: 'admin' | 'user';
-    }
-  }
-}
+import { DataTable } from "@/components/ui/data-table";
+import { AppliedJobsColumns, columns } from "./_components/column";
+import { format } from "date-fns";
+import React from "react";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { truncate } from "lodash";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import ErrorBoundary from "@/components/error-boundary";
 
 const ProfilePage = async () => {
   try {
-    // التحقق من المصادقة
-    const { userId } = auth();
+    // Authentication and authorization checks
+    const { userId } = await auth();
     const user = await currentUser();
 
-    // إعادة التوجيه إذا لم يكن مسجلاً دخولًا
-    if (!userId || !user) {
-      const redirectUrl = encodeURIComponent('/profile');
-      redirect(`/sign-in?redirect_url=${redirectUrl}`);
-    }
+    // Redirect unauthenticated/unauthorized users
+    if (!userId || !user) redirect('/sign-in');
+    if (user.publicMetadata.role !== 'admin') redirect('/unauthorized');
 
-    // التحقق من الصلاحيات مع القيمة الافتراضية
-    const fullUserData = await clerkClient.users.getUser(userId);
-    const role = fullUserData.publicMetadata.role as 'admin' | 'user' || 'user';
-
-    if (role !== 'admin') {
-      redirect('/unauthorized?code=403&from=profile');
-    }
-
-    // جلب البيانات المتوازي مع معالجة الأخطاء
+    // Parallel data fetching
     const [
-      jobsData,
-      categoriesData,
-      companiesData,
-      profileData,
-      followedCompaniesData
-    ] = await Promise.allSettled([
+      { jobs }, 
+      categories, 
+      companies,
+      profile,
+      followedCompanies
+    ] = await Promise.all([
       getJobs({ userId }),
       db.category.findMany({ orderBy: { name: "asc" } }),
       db.company.findMany({ orderBy: { createdAt: "desc" } }),
@@ -76,159 +55,134 @@ const ProfilePage = async () => {
       })
     ]);
 
-    // معالجة نتائج البيانات
-    const handleDataResult = <T,>(result: PromiseSettledResult<T>, errorMsg: string): T => {
-      if (result.status === 'rejected') {
-        console.error(errorMsg, result.reason);
-        throw new Error(errorMsg);
-      }
-      return result.value;
-    };
+    // Handle incomplete profile
+    if (!profile) redirect('/complete-profile');
 
-    const jobs = handleDataResult(jobsData, 'Failed to load jobs');
-    const profile = handleDataResult(profileData, 'Profile load failed');
+    // Process applied jobs
+    const appliedJobs = profile.appliedJobs || [];
+    const filteredAppliedJobs = jobs.filter(job => 
+      appliedJobs.some(appliedJob => appliedJob.jobId === job.id)
+    );
 
-    // التحقق من اكتمال الملف الشخصي
-    if (!profile) {
-      redirect('/complete-profile?source=profile');
-    }
-
-    // معالجة الوظائف المتقدم لها
-    const formattedJobs: AppliedJobsColumns[] = profile.appliedJobs
-      .filter(appliedJob => jobs.some(job => job.id === appliedJob.jobId))
-      .map(appliedJob => {
-        const job = jobs.find(j => j.id === appliedJob.jobId)!;
-        return {
-          id: job.id,
-          title: job.title,
-          company: job.company?.name || "Unspecified Company",
-          category: job.category?.name || "General",
-          appliedAt: appliedJob.appliedAt
-            ? format(new Date(appliedJob.appliedAt), "MMM do, yyyy")
-            : "Not Available"
-        };
-      });
-
-    // معالجة الشركات المتابعة
-    const followedCompanies = handleDataResult(followedCompaniesData, 'Failed to load followed companies');
+    // Format jobs data for table
+    const formattedJobs: AppliedJobsColumns[] = filteredAppliedJobs.map(job => ({
+      id: job.id,
+      title: job.title,
+      company: job.company?.name || "Unspecified Company",
+      category: job.category?.name || "General",
+      appliedAt: job.appliedJobs?.[0]?.appliedAt 
+        ? format(new Date(job.appliedJobs[0].appliedAt), "MMM do, yyyy")
+        : "Not Available",
+    }));
 
     return (
       <ErrorBoundary>
-        <div className="flex flex-col p-4 md:p-8 items-center justify-center">
-          <Box className="w-full max-w-6xl">
+        <div className="flex-col p-4 md:p-8 items-center justify-center flex">
+          {/* Profile Header */}
+          <Box>
             <CustomBreadCrumb breadCrumbPage="My Profile" />
           </Box>
 
-          {/* قسم الملف الشخصي */}
-          <Box className="w-full max-w-6xl mt-8 p-6 space-y-8">
-            <section className="flex flex-col md:flex-row gap-8 items-start">
-              {user?.imageUrl && (
-                <div className="relative w-32 h-32 rounded-full border-4 border-white shadow-lg">
-                  <Image
-                    fill
-                    className="rounded-full object-cover"
-                    alt="Profile Picture"
-                    src={user.imageUrl}
-                    priority
-                    sizes="(max-width: 768px) 100px, 150px"
-                    quality={80}
-                  />
-                </div>
-              )}
-              
-              <div className="flex-1 space-y-6">
-                <NameForm initialData={profile} userId={userId} />
-                <EmailForm initialData={profile} userId={userId} />
-                <ContactForm initialData={profile} userId={userId} />
-                <ResumeForm initialData={profile} userId={userId} />
+          {/* Profile Details Section */}
+          <Box className="flex-col p-4 rounded-md border mt-8 w-full space-y-6">
+            {user?.hasImage && (
+              <div className="aspect-square w-24 h-24 rounded-full shadow-md relative">
+                <Image
+                  fill
+                  className="w-full h-full object-cover"
+                  alt="Profile Picture"
+                  src={user.imageUrl}
+                  priority
+                />
               </div>
-            </section>
+            )}
 
-            {/* قسم الوظائف المتقدم لها */}
-            <section className="space-y-6">
-              <h2 className="text-2xl font-semibold text-foreground">
-                Applied Jobs
-              </h2>
+            {/* Profile Update Forms */}
+            <NameForm initialData={profile} userId={userId} />
+            <EmailForm initialData={profile} userId={userId} />
+            <ContactForm initialData={profile} userId={userId} />
+            <ResumeForm initialData={profile} userId={userId} />
+          </Box>
+
+          {/* Applied Jobs Table */}
+          <Box className="flex-col items-start justify-start mt-12">
+            <h2 className="text-2xl text-muted-foreground font-semibold">
+              Applied Jobs
+            </h2>
+            <div className="w-full mt-6">
               <DataTable
                 columns={columns}
                 searchKey="company"
                 data={formattedJobs}
-                noDataMessage={
-                  <div className="p-4 text-center text-muted-foreground">
-                    No job applications found
-                  </div>
-                }
+                noDataMessage="No applications found"
               />
-            </section>
+            </div>
+          </Box>
 
-            {/* قسم الشركات المتابعة */}
-            <section className="space-y-6">
-              <h2 className="text-2xl font-semibold text-foreground">
-                Followed Companies
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {followedCompanies.length === 0 ? (
-                  <p className="text-muted-foreground">No followed companies</p>
-                ) : (
-                  followedCompanies.map((company) => (
-                    <CompanyCard key={company.id} company={company} />
-                  ))
-                )}
-              </div>
-            </section>
+          {/* Followed Companies Grid */}
+          <Box className="flex-col items-start justify-start mt-12">
+            <h2 className="text-2xl text-muted-foreground font-semibold">
+              Followed Companies
+            </h2>
+            <div className="mt-6 w-full grid grid-cols-1 md:grid-cols-3 2xl:grid-cols-6 gap-2">
+              {followedCompanies.length === 0 ? (
+                <p className="text-muted-foreground">No followed companies</p>
+              ) : (
+                <>
+                  {followedCompanies.map((company) => (
+                    <Card className="p-3 space-y-2 relative" key={company.id}>
+                      <div className="w-full flex items-center justify-end">
+                        <Link 
+                          href={`/companies/${company.id}`}
+                          aria-label="View company details"
+                        >
+                          <Button variant="ghost" size="icon">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                      {company.logo && (
+                        <div className="w-full h-24 flex items-center justify-center relative overflow-hidden">
+                          <Image
+                            fill
+                            alt="Company Logo"
+                            src={company.logo}
+                            className="object-contain w-full h-full"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      <CardTitle className="text-lg">
+                        {company.name || "Unnamed Company"}
+                      </CardTitle>
+                      {company.description && (
+                        <CardDescription>
+                          {truncate(company.description, {
+                            length: 80,
+                            omission: "...",
+                          })}
+                        </CardDescription>
+                      )}
+                    </Card>
+                  ))}
+                </>
+              )}
+            </div>
           </Box>
         </div>
       </ErrorBoundary>
     );
+
   } catch (error) {
     console.error('ProfilePage Error:', error);
-    const errorId = crypto.randomUUID();
-    redirect(`/error?source=profile&errorId=${errorId}`);
+    let digest = '';
+    
+    if (error instanceof Error) {
+      digest = (error as any).digest || '';
+    }
+    
+    redirect(`/error?source=dashboard&digest=${digest}`);
   }
 };
-
-const CompanyCard = ({ company }: { company: any }) => (
-  <Card className="p-4 hover:shadow-lg transition-shadow relative h-full">
-    <div className="absolute top-3 right-3">
-      <Link href={`/companies/${company.id}`} passHref>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          aria-label="View company details"
-          className="text-muted-foreground hover:text-primary"
-        >
-          <Eye className="w-4 h-4" />
-        </Button>
-      </Link>
-    </div>
-    
-    {company.logo && (
-      <div className="relative h-40 mb-4 rounded-lg overflow-hidden">
-        <Image
-          fill
-          alt="Company Logo"
-          src={company.logo}
-          className="object-contain"
-          loading="lazy"
-          sizes="(max-width: 768px) 100vw, 33vw"
-          quality={70}
-        />
-      </div>
-    )}
-    
-    <CardTitle className="text-lg mb-2">
-      {company.name || "Unnamed Company"}
-    </CardTitle>
-    
-    {company.description && (
-      <CardDescription className="line-clamp-3 text-sm">
-        {truncate(company.description, {
-          length: 120,
-          omission: "...",
-        })}
-      </CardDescription>
-    )}
-  </Card>
-);
 
 export default ProfilePage;
