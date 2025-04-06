@@ -8,13 +8,22 @@ const protectedRoutes = createRouteMatcher([
   '/dashboard(.*)',
   '/admin(.*)',
   '/jobs(.*)',
-  '/profile(.*)'
+  '/profile(.*)',
+  '/user(.*)'
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (auth, req: NextRequest) => {
   try {
-    // Bypass public routes
-    if (req.nextUrl.pathname.startsWith('/api/edgestore')) {
+    const url = req.nextUrl;
+    const pathname = url.pathname;
+
+    // Bypass routes
+    if (
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/static') ||
+      /\.(svg|png|jpg|jpeg|gif|ico)$/.test(pathname)
+    ) {
       return NextResponse.next();
     }
 
@@ -22,32 +31,29 @@ export default clerkMiddleware(async (auth, req) => {
     if (protectedRoutes(req)) {
       const { userId } = auth();
 
-      // Redirect unauthenticated users
+      // Redirect unauthenticated
       if (!userId) {
-        const signInUrl = new URL('/sign-in', req.url);
-        signInUrl.searchParams.set('redirect_url', req.url.toString());
+        const signInUrl = new URL('/sign-in', url);
+        signInUrl.searchParams.set('redirect_url', url.toString());
         return NextResponse.redirect(signInUrl);
       }
 
-      // Get user with metadata
+      // Get user securely
       const user = await clerkClient.users.getUser(userId);
-      
-      // Validate role metadata
-      const role = (user.publicMetadata.role as 'admin' | 'user') ?? 'user';
-      if (req.nextUrl.pathname.startsWith('/admin') && role !== 'admin') {
-        return NextResponse.redirect(new URL('/unauthorized', req.url));
+      const role = user.publicMetadata.role as 'admin' | 'user' || 'user';
+
+      // Admin protection
+      if (pathname.startsWith('/admin') && role !== 'admin') {
+        return NextResponse.redirect(new URL('/unauthorized', url));
       }
 
-      // Profile completion check
-      if (req.nextUrl.pathname.startsWith('/dashboard')) {
+      // Profile check
+      if (['/dashboard', '/user'].some(p => pathname.startsWith(p))) {
         const profile = await db.userProfile.findUnique({
           where: { userId },
           select: { id: true }
         });
-        
-        if (!profile) {
-          return NextResponse.redirect(new URL('/complete-profile', req.url));
-        }
+        if (!profile) return NextResponse.redirect(new URL('/complete-profile', url));
       }
     }
 
@@ -59,5 +65,5 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)']
 };

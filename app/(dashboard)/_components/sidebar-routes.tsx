@@ -1,3 +1,4 @@
+"use client";
 import { BookMarked, Compass, Home, List, User } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { SideBarRouteItem } from "./side-bar-route-item";

@@ -63,6 +63,7 @@ export default async function UnauthorizedPage({
             className="block w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900"
             aria-label="Sign in with different account"
           >
+            
             Switch Account
           </Link>
         </div>
