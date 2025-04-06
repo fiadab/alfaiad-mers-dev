@@ -8,15 +8,12 @@ export default async function UnauthorizedPage({
 }: {
   params: { unauthorized?: string[] };
 }) {
-  // التحقق من حالة المصادقة
   const { userId } = auth();
   
-  // إذا كان المستخدم مسجل دخول، إعادة التوجيه
   if (userId) {
     redirect('/dashboard');
   }
 
-  // إزالة console.log في الإنتاج
   if (process.env.NODE_ENV === 'development') {
     console.log('Unauthorized params:', params.unauthorized);
   }
@@ -24,7 +21,6 @@ export default async function UnauthorizedPage({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full space-y-6 border border-gray-200 dark:border-gray-700">
-        {/* العنوان الرئيسي */}
         <div className="space-y-2">
           <div className="flex justify-center text-red-500">
             <svg
@@ -47,13 +43,12 @@ export default async function UnauthorizedPage({
           </h1>
         </div>
 
-        {/* الرسالة التوضيحية */}
+        {/* التعديل هنا: استبدال ' بـ &apos; */}
         <p className="text-gray-600 dark:text-gray-400 text-center text-lg">
-          You don't have permission to view this page. Please contact your
+          You don&apos;t have permission to view this page. Please contact your
           administrator or try signing in with a different account.
         </p>
 
-        {/* أزرار الإجراءات */}
         <div className="space-y-3">
           <Link
             href="/"
