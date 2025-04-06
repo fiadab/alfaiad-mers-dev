@@ -1,7 +1,5 @@
-// app/dashboard/page.tsx
-import { getJobs } from "@/actions/get-jobs";
 import Box from "@/components/box";
-import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
+import {CustomBreadCrumb} from "@/components/custom-bread-crumb";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { NameForm } from "./_components/name-form";
@@ -19,170 +17,164 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import ErrorBoundary from "@/components/error-boundary";
+import { AppliedJob } from "@prisma/client";
 
 const ProfilePage = async () => {
-  try {
-    // Authentication and authorization checks
-    const { userId } = await auth();
+
+    const {userId} = await auth();
     const user = await currentUser();
 
-    // Redirect unauthenticated/unauthorized users
-    if (!userId || !user) redirect('/sign-in');
-    if (user.publicMetadata.role !== 'admin') redirect('/unauthorized');
+    if(!userId){
+        redirect("/sign-in")
+    }
 
-    // Parallel data fetching
-    const [
-      { jobs }, 
-      categories, 
-      companies,
-      profile,
-      followedCompanies
-    ] = await Promise.all([
-      getJobs({ userId }),
-      db.category.findMany({ orderBy: { name: "asc" } }),
-      db.company.findMany({ orderBy: { createdAt: "desc" } }),
-      db.userProfile.findUnique({
-        where: { userId },
-        include: {
-          resumes: { orderBy: { createdAt: "desc" } },
-          appliedJobs: true
-        }
-      }),
-      db.company.findMany({
-        where: { followers: { has: userId } },
-        orderBy: { createdAt: "desc" }
-      })
-    ]);
+    let profile = await db.userProfile.findUnique({
+      where:{
+          userId,
+      },
+      include:{
+          resumes:{
+              orderBy:{
+                  createdAt: "desc",
+              }
+          },
+          appliedJobs: true // إضافة appliedJobs هنا
+      },
+  });
 
-    // Handle incomplete profile
-    if (!profile) redirect('/complete-profile');
 
-    // Process applied jobs
-    const appliedJobs = profile.appliedJobs || [];
-    const filteredAppliedJobs = jobs.filter(job => 
-      appliedJobs.some(appliedJob => appliedJob.jobId === job.id)
-    );
+     const jobs = await db.job.findMany({
+        where:{
+            userId,
+        },
+        include:{
+            company: true,
+            category: true,
+        },
+        orderBy:{
+            createdAt: "desc",
+        },
+     });
 
-    // Format jobs data for table
-    const formattedJobs: AppliedJobsColumns[] = filteredAppliedJobs.map(job => ({
-      id: job.id,
-      title: job.title,
-      company: job.company?.name || "Unspecified Company",
-      category: job.category?.name || "General",
-      appliedAt: job.appliedJobs?.[0]?.appliedAt 
-        ? format(new Date(job.appliedJobs[0].appliedAt), "MMM do, yyyy")
-        : "Not Available",
+     const filteredAppliedJobs =
+      profile && profile?.appliedJobs.length > 0
+      ? jobs
+      .filter((job) =>
+        profile.appliedJobs.some(
+          (appliedJob: AppliedJob) => appliedJob.jobId === job.id
+      )
+    )
+    .map((job) => ({
+         ...job,
+         appliedAt: profile.appliedJobs.find(
+            appliedJob => appliedJob.jobId === job.id)
+            ?.appliedAt
+    })): [];
+
+    const formattedJobs : AppliedJobsColumns[] = filteredAppliedJobs.map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company ? job.company.name : "",
+        category: job.category ? job.category?.name : "",
+        appliedAt: job.appliedAt ? format(new Date(job.appliedAt), "MMM do, yyyy") : "",
     }));
 
-    return (
-      <ErrorBoundary>
-        <div className="flex-col p-4 md:p-8 items-center justify-center flex">
-          {/* Profile Header */}
-          <Box>
-            <CustomBreadCrumb breadCrumbPage="My Profile" />
-          </Box>
+    const followedCompanies = await db.company.findMany({
+        where:{
+            followers:{
+                has: userId,
+            },
+        },
+        orderBy:{
+            createdAt: "desc",
+        },
+    });
+    return ( <div className="flex-col p-4 md:p-8 items-center justify-center flex">
+        <Box>
+            <CustomBreadCrumb breadCrumbPage="My Profile"/>
 
-          {/* Profile Details Section */}
-          <Box className="flex-col p-4 rounded-md border mt-8 w-full space-y-6">
-            {user?.hasImage && (
-              <div className="aspect-square w-24 h-24 rounded-full shadow-md relative">
+        </Box>
+
+        <Box className="flex-col p-4 rounded-md border mt-8 w-full space-y-6">
+           {user && user.hasImage && (
+            <div className="aspect-square w-24 h-24 rounded-full shadow-md relative">
                 <Image
-                  fill
-                  className="w-full h-full object-cover"
-                  alt="Profile Picture"
-                  src={user.imageUrl}
-                  priority
+                fill
+                className="w-full h-full object-cover"
+                alt="e.g `Profile Profile Pic`"
+                src={user.imageUrl}
                 />
-              </div>
-            )}
+            </div>
+           )}
 
-            {/* Profile Update Forms */}
-            <NameForm initialData={profile} userId={userId} />
-            <EmailForm initialData={profile} userId={userId} />
-            <ContactForm initialData={profile} userId={userId} />
-            <ResumeForm initialData={profile} userId={userId} />
-          </Box>
+<NameForm initialData={profile} userId={userId}/>
+<EmailForm initialData={profile} userId={userId}/>
+<ContactForm initialData={profile} userId={userId}/>
+<ResumeForm initialData={profile} userId={userId}/>
+        </Box>
 
-          {/* Applied Jobs Table */}
-          <Box className="flex-col items-start justify-start mt-12">
+
+        {/* Applied Jobs List Table */}
+    
+        <Box className="flex-col items-start justify-start mt-12">
             <h2 className="text-2xl text-muted-foreground font-semibold">
-              Applied Jobs
+             Applied Jobs
             </h2>
+    
             <div className="w-full mt-6">
-              <DataTable
+                <DataTable
                 columns={columns}
                 searchKey="company"
                 data={formattedJobs}
-                noDataMessage="No applications found"
-              />
+                />
             </div>
-          </Box>
+        </Box>
 
-          {/* Followed Companies Grid */}
-          <Box className="flex-col items-start justify-start mt-12">
-            <h2 className="text-2xl text-muted-foreground font-semibold">
-              Followed Companies
+        <Box className="flex-col items-start justify-start mt-12">
+        <h2 className="text-2xl text-muted-foreground font-semibold">
+             Followed Companies
             </h2>
             <div className="mt-6 w-full grid grid-cols-1 md:grid-cols-3 2xl:grid-cols-6 gap-2">
-              {followedCompanies.length === 0 ? (
-                <p className="text-muted-foreground">No followed companies</p>
-              ) : (
-                <>
-                  {followedCompanies.map((company) => (
-                    <Card className="p-3 space-y-2 relative" key={company.id}>
-                      <div className="w-full flex items-center justify-end">
-                        <Link 
-                          href={`/companies/${company.id}`}
-                          aria-label="View company details"
-                        >
-                          <Button variant="ghost" size="icon">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                      </div>
-                      {company.logo && (
-                        <div className="w-full h-24 flex items-center justify-center relative overflow-hidden">
-                          <Image
-                            fill
-                            alt="Company Logo"
-                            src={company.logo}
-                            className="object-contain w-full h-full"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
-                      <CardTitle className="text-lg">
-                        {company.name || "Unnamed Company"}
-                      </CardTitle>
-                      {company.description && (
-                        <CardDescription>
-                          {truncate(company.description, {
-                            length: 80,
-                            omission: "...",
-                          })}
-                        </CardDescription>
-                      )}
-                    </Card>
-                  ))}
-                </>
-              )}
+                {followedCompanies.length === 0 ? (
+                    <p>No Companies Followed Yet</p>
+                    ):(
+                        <React.Fragment>
+                            {followedCompanies.map(com => (
+                                <Card className="p-3 space-y-2 relative" key={com.id}>
+                                    <div className="w-full flex items-center justify-end">
+                                    <Link href={`/companies/${com.id}`}>
+                                    <Button variant={"ghost"} size={"icon"}>
+                                        <Eye className="w-4 h-4"/>
+                                    </Button>
+                                    </Link>
+                                    </div>
+                                    {com.logo && (
+                                           <div className="w-full h-24 flex items-center justify-self-center relative overflow-hidden ">
+                                             <Image
+                                              fill
+                                             alt="Logo"
+                                            src={com.logo}
+                                         className="object-contain w-full h-full"
+                                           />
+                                            </div>
+                                          )}
+                                    <CardTitle className="text-lg">{com?.name}</CardTitle>
+                                    {com.description && (
+                                        <CardDescription>
+                                            {truncate(com?.description, {
+                                                length:80,
+                                                omission: "...",
+                                            })}
+                                        </CardDescription>
+                                    )}
+                                </Card>
+                            ))}
+                        </React.Fragment>
+                    )}
             </div>
-          </Box>
-        </div>
-      </ErrorBoundary>
+        </Box>
+    </div>
     );
-
-  } catch (error) {
-    console.error('ProfilePage Error:', error);
-    let digest = '';
-    
-    if (error instanceof Error) {
-      digest = (error as any).digest || '';
-    }
-    
-    redirect(`/error?source=dashboard&digest=${digest}`);
-  }
 };
 
 export default ProfilePage;

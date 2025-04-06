@@ -1,32 +1,37 @@
-// app/sign-up/page.tsx
-import AuthenticationLayout from "@/app/(auth)/layout";
-import { SignUp } from "@clerk/nextjs";
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { SignUp, useUser } from "@clerk/nextjs";
 
 export default function SignUpPage() {
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && isLoaded) {
+      fetch("/api/set-user-role", { method: "POST" })
+        .then(() => {
+          window.location.href = '/dashboard?refresh=' + Date.now();
+        })
+        .catch(console.error);
+    }
+  }, [user, isLoaded]);
+
   return (
-    <AuthenticationLayout>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <SignUp
         path="/sign-up"
         routing="path"
         signInUrl="/sign-in"
         appearance={{
-          variables: {
-            colorPrimary: '#2563eb',
-            colorText: '#1f2937',
-            colorTextSecondary: '#4b5563',
-            colorBackground: '#ffffff',
-          },
           elements: {
-            rootBox: 'w-full',
-            card: 'shadow-none border-0 w-full',
-            formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-sm normal-case h-11',
-            formFieldInput: 'focus:ring-2 focus:ring-blue-500',
-            footerActionLink: 'text-blue-600 hover:text-blue-700 text-sm',
-            socialButtonsBlockButton: 'border-gray-300 hover:bg-gray-50',
-          }
+            rootBox: "w-full max-w-md",
+            card: "shadow-lg rounded-xl",
+            formButtonPrimary: "bg-purple-600 hover:bg-purple-700",
+            footerActionLink: "text-purple-600 hover:text-purple-700",
+          },
         }}
-        afterSignUpUrl="/complete-profile"
       />
-    </AuthenticationLayout>
+    </div>
   );
 }

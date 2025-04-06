@@ -5,3 +5,4 @@ import { initEdgeStore } from "@edgestore/server";
 export const getEdgeStore = () => {
   return initEdgeStore.context().create() as unknown as EdgeStoreRouter;
 };
+ 

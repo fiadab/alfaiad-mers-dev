@@ -24,7 +24,6 @@ interface ResumeFormProps {
   userId: string;
 }
 
-// Schema for form validation
 const formSchema = z.object({
   resumes: z
     .object({
@@ -40,32 +39,26 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
   const [isActiveResumeId, setIsActiveResumeId] = useState<string | null>(null);
   const router = useRouter();
 
-  // Initialize resumes from initial data
-  const initialResumes = Array.isArray(initialData?.resumes)
-    ? initialData.resumes.map((resume) => ({
-        url: resume.url,
-        name: resume.name,
-      }))
-    : [];
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { resumes: initialResumes },
+    defaultValues: { 
+      resumes: initialData?.resumes.map((r) => ({
+        url: r.url,
+        name: r.name
+      })) || []
+    },
   });
 
-  // Validate uploaded files
   const validateFiles = (files: any[]): boolean => {
     return files.every(
       (file) =>
-        file.size <= 5 * 1024 * 1024 && // File size <= 5MB
-        ["application/pdf", "application/msword"].includes(file.type) // Supported file types
+        file.size <= 5 * 1024 * 1024 &&
+        ["application/pdf", "application/msword"].includes(file.type)
     );
   };
 
-  // Toggle editing mode
   const toggleEditing = () => setIsEditing((current) => !current);
 
-  // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.post(`/api/users/${userId}/resumes`, values);
@@ -77,16 +70,15 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
     }
   };
 
-  // Handle resume deletion
   const onDelete = async (resume: Resumes) => {
     try {
       if (initialData?.activeResumeId === resume.id) {
-        toast.error("Cannot delete the active resume");
+        toast.error("Cannot delete active resume");
         return;
       }
       setDeletingId(resume.id);
       await axios.delete(`/api/users/${userId}/resumes/${resume.id}`);
-      toast.success("Resume removed");
+      toast.success("Resume deleted");
       router.refresh();
     } catch (error) {
       toast.error("Something went wrong");
@@ -95,12 +87,11 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
     }
   };
 
-  // Handle setting active resume
   const setActiveResumeId = async (resumeId: string) => {
     try {
       setIsActiveResumeId(resumeId);
       await axios.patch(`/api/users/${userId}`, { activeResumeId: resumeId });
-      toast.success("Resume activated");
+      toast.success("Active resume updated");
       router.refresh();
     } catch (error) {
       toast.error("Something went wrong");
@@ -112,7 +103,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
   return (
     <div className="mt-6 border bg-neutral-100 rounded-md p-4">
       <div className="font-medium flex items-center justify-between">
-        Job resumes
+        Resumes
         <Button onClick={toggleEditing} variant="ghost">
           {isEditing ? (
             <>Cancel</>
@@ -124,12 +115,11 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
         </Button>
       </div>
 
-      {/* Display resumes */}
       {!isEditing && (
         <div className="space-y-2">
           {initialData?.resumes.map((item) => (
             <div key={item.id} className="grid grid-cols-12 gap-2">
-              <div className="flex items-center p-3 w-full bg-pink-100 border-purple-200 border text-purple-700 rounded-md col-span-11">
+              <div className="flex items-center p-3 w-full bg-pink-100 border-purple-200 border text-purple-700 rounded-md col-span-10">
                 <File className="w-4 h-4 mr-2" />
                 <p className="text-xs w-full truncate">{item.name}</p>
                 {deletingId === item.id ? (
@@ -140,31 +130,26 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
                     size="icon"
                     className="p-1"
                     onClick={() => onDelete(item)}
+                    disabled={initialData.activeResumeId === item.id}
                   >
                     <X className="w-4 h-4" />
                   </Button>
                 )}
               </div>
-              <div className="col-span-2 flex items-center justify-start gap-2">
+              <div className="col-span-2 flex items-center justify-center">
                 {isActiveResumeId === item.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Button
                     variant="ghost"
                     className={cn(
-                      "flex items-center justify-center",
-                      initialData.activeResumeId === item.id
-                        ? "text-emerald-500"
-                        : "text-red-500"
+                      "flex items-center",
+                      initialData.activeResumeId === item.id && "text-green-600"
                     )}
                     onClick={() => setActiveResumeId(item.id)}
                   >
-                    <p>
-                      {initialData.activeResumeId === item.id
-                        ? "Live"
-                        : "Activate"}
-                    </p>
-                    <ShieldCheck className="w-4 h-4 ml-2" />
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    {initialData.activeResumeId === item.id ? "Active" : "Set Active"}
                   </Button>
                 )}
               </div>
@@ -173,7 +158,6 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
         </div>
       )}
 
-      {/* Editing mode */}
       {isEditing && (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
@@ -190,9 +174,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
                         if (validateFiles(resumes)) {
                           field.onChange(resumes);
                         } else {
-                          toast.error(
-                            "Invalid files. Please check the size and type."
-                          );
+                          toast.error("Invalid file type or size (max 5MB)");
                         }
                       }}
                     />
@@ -206,7 +188,7 @@ export const ResumeForm = ({ initialData, userId }: ResumeFormProps) => {
                 disabled={!form.formState.isValid || form.formState.isSubmitting}
                 type="submit"
               >
-                Save
+                Save Changes
               </Button>
             </div>
           </form>

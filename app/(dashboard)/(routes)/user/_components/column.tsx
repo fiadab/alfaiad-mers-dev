@@ -82,7 +82,7 @@ export const columns: ColumnDef<AppliedJobsColumns>[] = [
     cell: ({ row }) => {
       const { id } = row.original;
       return (
-        <Link href={`/search/${id}`}>
+        <Link href={`/jobs/${id}`}>
           <Button variant={"ghost"} size={"icon"}>
             <Eye className="w-4 h-4" />
           </Button>
