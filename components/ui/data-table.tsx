@@ -1,3 +1,4 @@
+// components/ui/data-table.tsx
 "use client";
 
 import {
@@ -23,19 +24,20 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 
-// Updated interface with new optional prop
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey: string;
-  noDataMessage?: string; // New optional prop for custom empty state
+  noDataMessage?: string;
+  placeholder?: string;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
-  noDataMessage = "No results.", // Default value for backward compatibility
+  noDataMessage = "No results.",
+  placeholder,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -50,6 +52,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
       columnFilters,
@@ -59,19 +62,15 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      {/* Search input remains unchanged */}
       <div className="flex items-center py-4">
         <Input
-          placeholder={`Filter ${searchKey}...`}
-          value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn(searchKey)?.setFilterValue(event.target.value)
-          }
+          placeholder={placeholder || `Search ${searchKey}...`}
+          value={globalFilter ?? ""}
+          onChange={(e) => setGlobalFilter(e.target.value)}
           className="max-w-sm"
         />
       </div>
 
-      {/* Table structure */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -108,7 +107,6 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : (
-              // Updated empty state using the new prop
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -122,7 +120,6 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination controls remain unchanged */}
       <div className="flex items-center justify-between py-4">
         <span>
           Page {table.getState().pagination.pageIndex + 1} of{" "}
@@ -149,4 +146,4 @@ export function DataTable<TData, TValue>({
       </div>
     </div>
   );
-};
+}

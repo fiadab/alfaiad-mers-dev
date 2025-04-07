@@ -11,8 +11,8 @@ export default function SignInPage() {
         path="/sign-in"
         routing="path"
         signUpUrl="/sign-up"
-        afterSignInUrl="/dashboard"
-        afterSignUpUrl="/onboarding"
+        fallbackRedirectUrl="/dashboard"
+        forceRedirectUrl="/dashboard"
         appearance={{
           elements: {
             rootBox: "w-full max-w-md",
@@ -21,8 +21,7 @@ export default function SignInPage() {
             footerActionLink: "text-blue-600 hover:text-blue-700 text-sm",
           },
         }}
-        redirectUrl={(searchParams: { get: (arg0: string) => any; }) => {
-          // معالجة إعادة التوجيه من Middleware
+        redirectUrl={(searchParams: URLSearchParams) => { // <-- هنا التعديل
           const redirectUrl = searchParams.get("redirect_url");
           return redirectUrl || "/dashboard";
         }}

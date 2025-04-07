@@ -16,21 +16,17 @@ const nextConfig = {
     dangerouslyAllowSVG: false,
   },
 
-  // Define custom HTTP headers including Content Security Policy (CSP)
   async headers() {
     const securityHeaders = [
       {
         key: "Content-Security-Policy",
         value: [
-          // Allow resources only from self and specified external domains
           "default-src 'self'",
-          // Update script-src to include *.clerk.accounts.dev along with other allowed domains
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' *.clerk.com *.clerk.dev *.clerk.accounts.dev",
           "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
           "img-src 'self' data: *.edgestore.dev img.clerk.com",
           "font-src 'self' fonts.gstatic.com",
           "connect-src 'self' https://api.clerk.com *.clerk.accounts.dev https://files.edgestore.dev",
-          // Update frame-src to include *.clerk.accounts.dev
           "frame-src 'self' *.clerk.com *.clerk.dev *.clerk.accounts.dev",
           "worker-src 'self' blob:"
         ].join("; ")
@@ -45,7 +41,6 @@ const nextConfig = {
       },
     ];
 
-    // Apply these headers to all routes
     return [
       {
         source: "/:path*",
@@ -57,10 +52,14 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "prisma"],
     optimizeCss: true,
+    optimizePackageImports: [
+      '@clerk/nextjs',
+      '@prisma/client',
+      'lodash'
+    ]
   },
 
   webpack: (config, { isServer }) => {
-    // Fallback configuration for server and client bundling
     config.resolve.fallback = {
       ...config.resolve.fallback,
       "mongodb-client-encryption": false,
@@ -71,7 +70,6 @@ const nextConfig = {
     };
 
     if (!isServer) {
-      // Configure client-side chunk splitting
       config.optimization.splitChunks = {
         chunks: "all",
         maxSize: 256000,
@@ -101,7 +99,6 @@ const nextConfig = {
     EDGE_STORE_ACCESS_KEY: process.env.EDGE_STORE_ACCESS_KEY,
     EDGE_STORE_SECRET_KEY: process.env.EDGE_STORE_SECRET_KEY,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
-    NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV || "development",
   },
 
   compress: true,
