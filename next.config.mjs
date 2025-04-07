@@ -41,8 +41,9 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "prisma"],
     optimizeCss: true,
-    optimizePackageImports: ['@clerk/nextjs', '@prisma/client', 'lodash'],
+    optimizePackageImports: ['@clerk/nextjs', 'lodash'],
   },
+  
 
   webpack(config, { isServer }) {
     config.resolve.fallback = {
