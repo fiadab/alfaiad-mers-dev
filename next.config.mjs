@@ -2,14 +2,8 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "files.edgestore.dev",
-      },
-      {
-        protocol: "https",
-        hostname: "img.clerk.com",
-      },
+      { protocol: "https", hostname: "files.edgestore.dev" },
+      { protocol: "https", hostname: "img.clerk.com" },
     ],
     formats: ["image/webp"],
     minimumCacheTTL: 86400,
@@ -31,14 +25,8 @@ const nextConfig = {
           "worker-src 'self' blob:"
         ].join("; ")
       },
-      {
-        key: "X-Frame-Options",
-        value: "DENY",
-      },
-      {
-        key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=()",
-      },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
     ];
 
     return [
@@ -52,14 +40,10 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "prisma"],
     optimizeCss: true,
-    optimizePackageImports: [
-      '@clerk/nextjs',
-      '@prisma/client',
-      'lodash'
-    ]
+    optimizePackageImports: ['@clerk/nextjs', '@prisma/client', 'lodash'],
   },
 
-  webpack: (config, { isServer }) => {
+  webpack(config, { isServer }) {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       "mongodb-client-encryption": false,
